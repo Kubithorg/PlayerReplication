@@ -1,0 +1,4 @@
+name: KubithonReplicate
+main: org.kubithon.replicate.ReplicatePlugin
+version: 0.0.1
+author: Creart
