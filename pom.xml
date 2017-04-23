@@ -15,6 +15,10 @@
             <name>Oscar Davis</name>
             <id>Creart</id>
         </developer>
+        <developer>
+            <name>Maxime Casas</name>
+            <id>troopy28</id>
+        </developer>
     </developers>
 
     <organization>
@@ -57,6 +61,10 @@
             <url>http://repo.dmulloy2.net/content/groups/public/</url>
             <id>dmulloy2-repo</id>
         </repository>
+        <repository>
+            <id>everything</id>
+            <url>http://repo.citizensnpcs.co</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -69,6 +77,12 @@
             <groupId>biz.paluch.redis</groupId>
             <artifactId>lettuce</artifactId>
             <version>4.3.1.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>net.citizensnpcs</groupId>
+            <artifactId>citizensapi</artifactId>
+            <version>2.0</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
