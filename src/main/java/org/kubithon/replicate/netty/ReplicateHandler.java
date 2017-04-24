@@ -26,7 +26,7 @@ public class ReplicateHandler
     {
         ((CraftPlayer) player).getHandle().playerConnection
                 .networkManager.channel.pipeline()
-                .addBefore("packet-handler", "replicate", new ReplicationChannelHandler());
+                .addBefore("packet-handler", "replicate", new ReplicationChannelHandler(player.getName()));
     }
 
 }

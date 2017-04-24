@@ -21,5 +21,4 @@ public class ConnectionListener implements Listener
         if (player.hasPermission("kubithon.replicate"))
             ReplicateHandler.handle(player);
     }
-
 }
