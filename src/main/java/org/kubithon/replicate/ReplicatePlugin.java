@@ -46,7 +46,7 @@ public class ReplicatePlugin extends JavaPlugin {
                 credentials.getInt("redis-port"),
                 credentials.getString("redis-password)"));
         broker.connect(connect);
-        broker.subscribe(BrokingConstant.REPLICATION_TOPIC, new ReplicationListener());
+        broker.subscribe(BrokingConstant.REPLICATION_TOPIC.concat("*"), new ReplicationListener());
 
         registerListeners(new ConnectionListener());
     }
