@@ -9,9 +9,9 @@ public class BrokingConstant
 
     /**
      * The pattern used for replications. The topic depends on the packet that has been sent.
-     * If packet's id is 3, the topic will be <pre>replicate:3</pre>, for instance.
+     * The part after the colon is the name of the player.
      */
-    public static final String REPLICATION_TOPIC = "replicate:*";
+    public static final String REPLICATION_TOPIC = "replicate:";
 
     private BrokingConstant()
     {
