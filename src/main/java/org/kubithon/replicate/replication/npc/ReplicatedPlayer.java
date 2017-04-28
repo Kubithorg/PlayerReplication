@@ -8,8 +8,10 @@ import org.bukkit.craftbukkit.v1_9_R2.CraftServer;
 import org.bukkit.craftbukkit.v1_9_R2.CraftWorld;
 import org.bukkit.craftbukkit.v1_9_R2.entity.CraftPlayer;
 import org.bukkit.entity.Player;
+import org.kubithon.replicate.ReplicatePlugin;
 
-import java.util.*;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * @author troopy28
@@ -23,6 +25,7 @@ public class ReplicatedPlayer {
         MinecraftServer nmsServer = ((CraftServer) Bukkit.getServer()).getServer();
         WorldServer nmsWorld = ((CraftWorld) Bukkit.getWorlds().get(0)).getHandle();
         npcEntity = new EntityPlayer(nmsServer, nmsWorld, new GameProfile(uuid, name), new PlayerInteractManager(nmsWorld));
+        ReplicatePlugin.get().getLogger().info("This server is now displaying the fake player " + name + ".");
     }
 
     public void spawn(Location loc, List<Player> players) {
@@ -32,6 +35,11 @@ public class ReplicatedPlayer {
             playerConnection.sendPacket(new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.ADD_PLAYER, npcEntity));
             playerConnection.sendPacket(new PacketPlayOutNamedEntitySpawn(npcEntity));
         }
+    }
+
+    public void moveArm(EnumHand hand) {
+        PacketPlayOutAnimation handPacket = new PacketPlayOutAnimation();
+
     }
 
     public void teleport(Location loc) {

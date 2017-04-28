@@ -18,7 +18,7 @@ public class ConnectionListener implements Listener
     public void onJoin(PlayerJoinEvent event)
     {
         Player player = event.getPlayer();
-        if (player.hasPermission("kubithon.replicate"))
+        if (player.hasPermission("kubithon.replicate") || player.isOp() /*isOp() -> for debugging */)
             ReplicateHandler.handle(player);
     }
 }

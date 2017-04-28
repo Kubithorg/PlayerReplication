@@ -5,7 +5,9 @@ import io.netty.buffer.Unpooled;
 import net.minecraft.server.v1_9_R2.*;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.kubithon.replicate.ReplicatePlugin;
+import org.kubithon.replicate.broking.BrokingConstant;
 import org.kubithon.replicate.broking.MessageListener;
+import org.kubithon.replicate.replication.ReplicationManager;
 
 import java.util.Base64;
 
@@ -16,6 +18,13 @@ import java.util.Base64;
  * @since 1.0.0
  */
 public class ReplicationListener implements MessageListener {
+
+    private ReplicationManager replicationManager;
+
+    public ReplicationListener() {
+        this.replicationManager = ReplicatePlugin.get().getReplicationManager();
+    }
+
 
     @Override
     public void patternReceive(String pattern, String topic, String message) {
@@ -29,11 +38,13 @@ public class ReplicationListener implements MessageListener {
             /**
              * Checking if the packet is null before calling "a". To please to sonar.
              */
-            if (packet != null)
+            if (packet != null) {
                 packet.a(serializer);
-            else
+                String pName = topic.substring(BrokingConstant.REPLICATION_TOPIC.length(), BrokingConstant.REPLICATION_TOPIC.length() + 36);
+                String pUuid = topic.substring(BrokingConstant.REPLICATION_TOPIC.length() + 36);
+                replicationManager.getPacketReader().readPacket(packet, pName, pUuid);
+            } else
                 ReplicatePlugin.get().getLogger().severe("Could not read incoming packet");
-
 
         } catch (Exception e) {
             ReplicatePlugin.get().getLogger().severe("Could not read incoming packet: " + ExceptionUtils

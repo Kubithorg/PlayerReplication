@@ -18,14 +18,12 @@ import java.util.Base64;
  */
 public class ReplicationChannelHandler extends ChannelInboundHandlerAdapter {
 
-    private ReplicatePlugin plugin;
-
     private ReplicatePlugin plugin = ReplicatePlugin.get();
     private Player player;
 
-    ReplicationChannelHandler(Player player)
-    {
+    ReplicationChannelHandler(Player player) {
         this.player = player;
+        plugin.getLogger().info("Created a ReplicationChannelHandler for the player " + player.getDisplayName() + ".");
     }
 
     @Override
@@ -35,16 +33,16 @@ public class ReplicationChannelHandler extends ChannelInboundHandlerAdapter {
         PacketDataSerializer serializer = null;
         Integer id = ctx.attr(NetworkManager.c).get().a(EnumProtocolDirection.SERVERBOUND, packet);
         if (id != null)
-            try
-            {
+            try {
                 serializer = new PacketDataSerializer(ctx.alloc().buffer());
                 serializer.b(id);
                 packet.b(serializer);
-                plugin.getMessageBroker().publish(BrokingConstant.REPLICATION_TOPIC.concat(player.getName()),
+                plugin.getMessageBroker().publish(
+                        BrokingConstant.REPLICATION_TOPIC
+                                .concat(player.getUniqueId().toString())
+                                .concat(player.getName()),
                         Base64.getEncoder().encodeToString(serializer.a()));
-            }
-            finally
-            {
+            } finally {
                 if (serializer != null)
                     serializer.release();
             }

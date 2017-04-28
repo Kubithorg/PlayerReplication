@@ -2,5 +2,7 @@ name: KubithonReplicate
 main: org.kubithon.replicate.ReplicatePlugin
 version: 0.0.1
 authors: [Creart, troopy28]
-depend: [Citizens]
-softdepend: [Citizens]
+permissions:
+  kubithon.replicate:
+    description: Enable a player to be replicated on other servers.
+    default: op

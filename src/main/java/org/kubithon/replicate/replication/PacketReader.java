@@ -16,14 +16,16 @@ public class PacketReader {
         this.manager = manager;
     }
 
-    public void readPacket(Packet<?> packet) {
+    public void readPacket(Packet<?> packet, String playerUuid, String playerName) {
+        System.out.println("Received a packet - Player : " + playerName);
+        System.out.println("                  - UUID : " + playerUuid);
         if (packet instanceof PacketPlayInArmAnimation)
             readPlayerInArmAnimation((PacketPlayInArmAnimation) packet);
     }
 
     private void readPlayerInArmAnimation(PacketPlayInArmAnimation packet) {
         EnumHand animation = packet.a();
-
+        System.out.println("received a fucking arm animation packet : " + animation.toString());
     }
 
 }

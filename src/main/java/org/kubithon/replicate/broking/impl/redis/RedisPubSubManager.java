@@ -1,15 +1,7 @@
 package org.kubithon.replicate.broking.impl.redis;
 
-import com.lambdaworks.redis.RedisClient;
-import com.lambdaworks.redis.RedisURI;
-import com.lambdaworks.redis.pubsub.RedisPubSubListener;
-import com.lambdaworks.redis.pubsub.StatefulRedisPubSubConnection;
-import org.apache.commons.lang.exception.ExceptionUtils;
-import org.kubithon.replicate.ReplicatePlugin;
 import org.kubithon.replicate.broking.MessageListener;
 import org.kubithon.replicate.broking.impl.AbstractPubSubManager;
-
-import java.util.logging.Level;
 
 /**
  * @author Oscar Davis
@@ -17,28 +9,28 @@ import java.util.logging.Level;
  */
 public class RedisPubSubManager extends AbstractPubSubManager<RedisCredentials> {
 
-    private RedisClient client;
-    private StatefulRedisPubSubConnection<String, String> connection;
+    /*private RedisClient client;
+    private StatefulRedisPubSubConnection<String, String> connection;*/
 
     @Override
     public void connect(RedisCredentials credentials) {
-        client = RedisClient.create(RedisURI.builder()
+        /*client = RedisClient.create(RedisURI.builder()
                 .withHost(credentials.host())
                 .withPort(credentials.port())
                 .withPassword(credentials.password())
                 .build());
         connection = client.connectPubSub();
-        connection.async().addListener(new RedisListener());
+        connection.async().addListener(new RedisListener());*/
     }
 
     @Override
     public void publish(String topic, String message) {
-        connection.async().publish(topic, message);
+        //connection.async().publish(topic, message);
     }
 
     @Override
     public void subscribe(String topic, MessageListener listener) {
-        try {
+        /*try {
             connection.sync().subscribe(topic);
         } catch (Exception e) {
             ReplicatePlugin.get().getLogger()
@@ -46,12 +38,12 @@ public class RedisPubSubManager extends AbstractPubSubManager<RedisCredentials> 
                             + topic + "\": " + ExceptionUtils.getFullStackTrace(e));
             return;
         }
-        super.subscribe(topic, listener);
+        super.subscribe(topic, listener);*/
     }
 
     @Override
     public void psubscribe(String pattern, String topic, MessageListener listener) {
-        try {
+        /*try {
             connection.sync().psubscribe(pattern);
         } catch (Exception e) {
             ReplicatePlugin.get().getLogger()
@@ -59,18 +51,18 @@ public class RedisPubSubManager extends AbstractPubSubManager<RedisCredentials> 
                             + topic + "\": " + ExceptionUtils.getFullStackTrace(e));
             return;
         }
-        super.psubscribe(pattern, topic, listener);
+        super.psubscribe(pattern, topic, listener);*/
     }
 
     @Override
     public void disconnect() {
-        if (connection != null && connection.isOpen())
+        /*if (connection != null && connection.isOpen())
             connection.close();
         if (client != null)
-            client.shutdown();
+            client.shutdown();*/
     }
 
-    private class RedisListener implements RedisPubSubListener<String, String> {
+    /*private class RedisListener implements RedisPubSubListener<String, String> {
         @Override
         public void message(String topic, String message) {
             RedisPubSubManager.this.callTopicListeners(topic, message);
@@ -100,6 +92,6 @@ public class RedisPubSubManager extends AbstractPubSubManager<RedisCredentials> 
         public void punsubscribed(String s, long l) {
             // unused.
         }
-    }
+    }*/
 
 }
