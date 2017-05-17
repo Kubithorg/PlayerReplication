@@ -1,6 +1,8 @@
 package org.kubithon.replicate.broking.jedis;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.craftbukkit.libs.jline.internal.Log;
 import org.kubithon.replicate.ReplicatePlugin;
 import org.kubithon.replicate.broking.MessageListener;
 import org.kubithon.replicate.broking.impl.AbstractPubSubManager;
@@ -32,8 +34,12 @@ public class JedisPubSubManager extends AbstractPubSubManager<RedisCredentials> 
         this.subscriberJedis = pool.getResource();
         String redisPassword = credentials.password();
         if (redisPassword != null) {
-            publisherJedis.auth(redisPassword);
-            subscriberJedis.auth(redisPassword);
+            try {
+                publisherJedis.auth(redisPassword);
+                subscriberJedis.auth(redisPassword);
+            } catch (Exception ex) {
+                ReplicatePlugin.get().getLogger().severe(ExceptionUtils.getFullStackTrace(ex));
+            }
         }
         this.pubSub = createPubSub();
         pool.close();
@@ -41,6 +47,7 @@ public class JedisPubSubManager extends AbstractPubSubManager<RedisCredentials> 
 
     @Override
     public void publish(String topic, String message) {
+        Log.info("Publishing in topic '" + topic + "' the message '" + message + "'.");
         publisherJedis.publish(topic, message);
     }
 
@@ -74,12 +81,14 @@ public class JedisPubSubManager extends AbstractPubSubManager<RedisCredentials> 
         return new JedisPubSub() {
             @Override
             public void onMessage(String topic, String message) {
+                ReplicatePlugin.get().getLogger().info("Message received"); //TODO : remove this debug message
                 callTopicListeners(topic, message);
             }
 
             @Override
             public void onPMessage(String pattern, String topic, String message) {
                 callPatternListeners(pattern, topic, message);
+                ReplicatePlugin.get().getLogger().info("Pattern received"); //TODO : remove this debug message
             }
         };
     }

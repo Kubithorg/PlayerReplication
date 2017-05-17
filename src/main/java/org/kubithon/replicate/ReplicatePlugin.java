@@ -61,10 +61,6 @@ public class ReplicatePlugin extends JavaPlugin {
             getLogger().info("Attempting to connect to Redis...");
             jedisBroker.connect(connect);
             getLogger().info("Successfully connected to Redis!");
-        } catch (Exception ex) {
-            getLogger().severe(ExceptionUtils.getFullStackTrace(ex));
-        }
-        try {
             //broker.subscribe(BrokingConstant.REPLICATION_TOPIC.concat("*"), new ReplicationListener());
             getLogger().info("Attempting to subscribe to the pattern :..." + BrokingConstant.REPLICATION_TOPIC.concat("*"));
             jedisBroker.psubscribe(BrokingConstant.REPLICATION_TOPIC.concat("*"), BrokingConstant.REPLICATION_TOPIC, new ReplicationListener());

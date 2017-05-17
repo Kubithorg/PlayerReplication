@@ -20,13 +20,13 @@ public class ReplicateHandler
      * Adds a channel handler to the given player which is going to replicate his packets
      * to servers on the whole network.
      *
-     * @param player    the player.
+     * @param player    The player.
      */
     public static void handle(Player player)
     {
         ((CraftPlayer) player).getHandle().playerConnection
                 .networkManager.channel.pipeline()
-                .addBefore("packet-handler", "replicate", new ReplicationChannelHandler(player));
+                //.addBefore("packet-handler", "replicate", new ReplicationChannelHandler(player));
+                .addAfter("decoder", "replication-channel", new ReplicationChannelHandler(player));
     }
-
 }

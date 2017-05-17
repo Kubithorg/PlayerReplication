@@ -6,6 +6,7 @@ import net.minecraft.server.v1_9_R2.EnumProtocolDirection;
 import net.minecraft.server.v1_9_R2.NetworkManager;
 import net.minecraft.server.v1_9_R2.Packet;
 import net.minecraft.server.v1_9_R2.PacketDataSerializer;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.bukkit.entity.Player;
 import org.kubithon.replicate.ReplicatePlugin;
 import org.kubithon.replicate.broking.BrokingConstant;
@@ -27,26 +28,27 @@ public class ReplicationChannelHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+    public void channelRead(ChannelHandlerContext context, Object msg) throws Exception {
         Packet<?> packet = (Packet<?>) msg;
 
         PacketDataSerializer serializer = null;
-        Integer id = ctx.attr(NetworkManager.c).get().a(EnumProtocolDirection.SERVERBOUND, packet);
+        Integer id = context.attr(NetworkManager.c).get().a(EnumProtocolDirection.SERVERBOUND, packet); // NPE !
         if (id != null)
             try {
-                serializer = new PacketDataSerializer(ctx.alloc().buffer());
+                serializer = new PacketDataSerializer(context.alloc().buffer());
                 serializer.b(id);
                 packet.b(serializer);
                 plugin.getMessageBroker().publish(
                         BrokingConstant.REPLICATION_TOPIC
-                                .concat(player.getUniqueId().toString())
                                 .concat(player.getName()),
                         Base64.getEncoder().encodeToString(serializer.a()));
+            } catch (Exception ex) {
+                plugin.getLogger().severe(ExceptionUtils.getFullStackTrace(ex));
             } finally {
                 if (serializer != null)
                     serializer.release();
             }
 
-        super.channelRead(ctx, msg);
+        super.channelRead(context, msg);
     }
 }
