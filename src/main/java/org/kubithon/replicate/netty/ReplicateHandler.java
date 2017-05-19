@@ -1,32 +1,31 @@
 package org.kubithon.replicate.netty;
 
+import org.bukkit.craftbukkit.libs.jline.internal.Log;
 import org.bukkit.craftbukkit.v1_9_R2.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
 /**
  * Util class for adding the {@link ReplicationChannelHandler}.
  *
- * @author Oscar Davis
+ * @author Oscar Davis, troopy28
  * @since 1.0.0
  */
-public class ReplicateHandler
-{
+public class ReplicateHandler {
 
-    private ReplicateHandler()
-    {
+    private ReplicateHandler() {
     }
 
     /**
      * Adds a channel handler to the given player which is going to replicate his packets
      * to servers on the whole network.
      *
-     * @param player    The player.
+     * @param player The player.
      */
-    public static void handle(Player player)
-    {
+    public static void handle(Player player) {
         ((CraftPlayer) player).getHandle().playerConnection
                 .networkManager.channel.pipeline()
-                //.addBefore("packet-handler", "replicate", new ReplicationChannelHandler(player));
-                .addAfter("decoder", "replication-channel", new ReplicationChannelHandler(player));
+                .addBefore("packet_handler", "replication-channel", new ReplicationChannelHandler(player));
+        ((CraftPlayer) player).getHandle().playerConnection
+                .networkManager.channel.pipeline().names().forEach(Log::info);
     }
 }

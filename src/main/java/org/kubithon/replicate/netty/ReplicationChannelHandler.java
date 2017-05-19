@@ -2,10 +2,7 @@ package org.kubithon.replicate.netty;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import net.minecraft.server.v1_9_R2.EnumProtocolDirection;
-import net.minecraft.server.v1_9_R2.NetworkManager;
-import net.minecraft.server.v1_9_R2.Packet;
-import net.minecraft.server.v1_9_R2.PacketDataSerializer;
+import net.minecraft.server.v1_9_R2.*;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.bukkit.entity.Player;
 import org.kubithon.replicate.ReplicatePlugin;
@@ -32,8 +29,17 @@ public class ReplicationChannelHandler extends ChannelInboundHandlerAdapter {
         Packet<?> packet = (Packet<?>) msg;
 
         PacketDataSerializer serializer = null;
-        Integer id = context.attr(NetworkManager.c).get().a(EnumProtocolDirection.SERVERBOUND, packet); // NPE !
-        if (id != null)
+        Integer id = null;
+
+        try {
+            /*EnumProtocol protocol = context.attr(NetworkManager.c).get();
+            id = protocol.a(EnumProtocolDirection.SERVERBOUND, packet); // NPE !*/
+            id = EnumProtocol.PLAY.a(EnumProtocolDirection.SERVERBOUND, packet); // Seems to be a nice workaround
+        } catch (Exception ex) {
+            plugin.getLogger().severe("Error while trying to get the ID of the packet. \n" + ExceptionUtils.getFullStackTrace(ex));
+        }
+
+        if (id != null) {
             try {
                 serializer = new PacketDataSerializer(context.alloc().buffer());
                 serializer.b(id);
@@ -48,6 +54,7 @@ public class ReplicationChannelHandler extends ChannelInboundHandlerAdapter {
                 if (serializer != null)
                     serializer.release();
             }
+        }
 
         super.channelRead(context, msg);
     }
