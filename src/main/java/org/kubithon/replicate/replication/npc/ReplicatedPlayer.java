@@ -42,7 +42,23 @@ public class ReplicatedPlayer {
 
     }
 
+    public void updateLook(float pitch, float yaw) {
+
+    }
+
     public void teleport(Location loc) {
         npcEntity.teleportTo(loc, false);
+    }
+
+    public void teleport(float x, float y, float z) {
+        npcEntity.setPosition(x, y, z);
+    }
+
+    public void teleport(float x, float y, float z, float pitch, float yaw) {
+        npcEntity.setLocation(x, y, z, yaw, pitch);
+    }
+
+    public Location getLocation() {
+        return npcEntity.getBukkitEntity().getLocation();
     }
 }
