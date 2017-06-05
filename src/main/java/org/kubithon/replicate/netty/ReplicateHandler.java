@@ -1,6 +1,5 @@
 package org.kubithon.replicate.netty;
 
-import org.bukkit.craftbukkit.libs.jline.internal.Log;
 import org.bukkit.craftbukkit.v1_9_R2.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
@@ -25,7 +24,5 @@ public class ReplicateHandler {
         ((CraftPlayer) player).getHandle().playerConnection
                 .networkManager.channel.pipeline()
                 .addBefore("packet_handler", "replication-channel", new ReplicationChannelHandler(player));
-        ((CraftPlayer) player).getHandle().playerConnection
-                .networkManager.channel.pipeline().names().forEach(Log::info);
     }
 }

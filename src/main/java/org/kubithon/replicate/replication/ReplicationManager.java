@@ -1,5 +1,7 @@
 package org.kubithon.replicate.replication;
 
+import org.bukkit.Bukkit;
+import org.bukkit.craftbukkit.libs.jline.internal.Log;
 import org.bukkit.entity.Player;
 import org.kubithon.replicate.replication.npc.ReplicatedPlayer;
 import org.kubithon.replicate.replication.protocol.*;
@@ -36,27 +38,53 @@ public class ReplicationManager {
         ReplicatedPlayer replicatedPlayer = new ReplicatedPlayer(uuid, name);
         replicatedPlayers.put(name, replicatedPlayer);
     }
+
+    public void unregisterReplicatedPlayer(String name) {
+        if (replicatedPlayers.containsKey(name)) {
+            ReplicatedPlayer player = replicatedPlayers.get(name);
+            player.dispawn(Bukkit.getOnlinePlayers());
+        }
+    }
+
     // TODO : disconnection handling
-    public void handleKubicket(String playerName, KubicketContainer receivedContainer) {
-        switch (receivedContainer.getPacketType()) {
-            case PLAYER_CONNECTION:
-                PlayerConnectionKubicket conKbckt = receivedContainer.extractPacket();
-                registerReplicatedPlayer(UUID.fromString(conKbckt.playerUuid), conKbckt.playerName);
-                break;
-            case PLAYER_LOOK:
-                PlayerLookKubicket lookKbckt = receivedContainer.extractPacket();
-                replicatedPlayers.get(playerName).updateLook(lookKbckt.pitch, lookKbckt.yaw);
-                break;
-            case PLAYER_POSITION:
-                PlayerPositionKubicket posKbckt = receivedContainer.extractPacket();
-                replicatedPlayers.get(playerName).teleport(posKbckt.xPos, posKbckt.yPos, posKbckt.zPos);
-                break;
-            case PLAYER_POSITION_LOOK:
-                PlayerPositionLookKubicket posLookKbckt = receivedContainer.extractPacket();
-                replicatedPlayers.get(playerName).teleport(posLookKbckt.xPos, posLookKbckt.yPos, posLookKbckt.zPos, posLookKbckt.pitch, posLookKbckt.yaw);
-                break;
-            default:
-                break;
+    public void handleKubicket(String playerName, KubithonPacket receivedPacket) {
+        Log.info("Handling a kubicket. Player: " + playerName);
+
+        if (receivedPacket instanceof PlayerLookKubicket) {
+            PlayerLookKubicket lookKubicket = (PlayerLookKubicket) receivedPacket;
+            replicatedPlayers.get(playerName).updateLook(
+                    lookKubicket.getPitch(),
+                    lookKubicket.getYaw()
+            );
+        } else if (receivedPacket instanceof PlayerPositionKubicket) {
+            PlayerPositionKubicket positionKubicket = (PlayerPositionKubicket) receivedPacket;
+            replicatedPlayers.get(playerName).teleport(
+                    positionKubicket.getxPos(),
+                    positionKubicket.getyPos(),
+                    positionKubicket.getzPos()
+            );
+        } else if (receivedPacket instanceof PlayerPositionLookKubicket) {
+            PlayerPositionLookKubicket positionLookKubicket = (PlayerPositionLookKubicket) receivedPacket;
+            replicatedPlayers.get(playerName).teleport(
+                    positionLookKubicket.getxPos(),
+                    positionLookKubicket.getyPos(),
+                    positionLookKubicket.getzPos(),
+                    positionLookKubicket.getPitch(),
+                    positionLookKubicket.getYaw()
+            );
+        } else if (receivedPacket instanceof PlayerConnectionKubicket) {
+            handleConnectionPacket((PlayerConnectionKubicket) receivedPacket);
+        }
+    }
+
+    private void handleConnectionPacket(PlayerConnectionKubicket receivedPacket) {
+        if (receivedPacket.getState() == 0) {
+            registerReplicatedPlayer(
+                    UUID.fromString(receivedPacket.getPlayerUuid()),
+                    receivedPacket.getPlayerName()
+            );
+        } else if (receivedPacket.getState() == 1) {
+            unregisterReplicatedPlayer(receivedPacket.getPlayerName());
         }
     }
 }

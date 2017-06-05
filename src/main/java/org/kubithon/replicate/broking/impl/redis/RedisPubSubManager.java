@@ -70,7 +70,7 @@ public class RedisPubSubManager extends AbstractPubSubManager<RedisCredentials> 
 
         @Override
         public void message(String pattern, String topic, String message) {
-            RedisPubSubManager.this.callPatternListeners(pattern, topic, message);
+            RedisPubSubManager.this.callListeners(pattern, topic, message);
         }
 
         @Override

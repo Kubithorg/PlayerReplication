@@ -90,22 +90,6 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/org.msgpack/msgpack -->
-        <dependency>
-            <groupId>org.msgpack</groupId>
-            <artifactId>msgpack</artifactId>
-            <version>0.6.12</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <!--
-        <dependency>
-            <groupId>biz.paluch.redis</groupId>
-            <artifactId>lettuce</artifactId>
-            <version>4.3.1.Final</version>
-        </dependency>
-        -->
-
     </dependencies>
 
 </project>

@@ -6,7 +6,7 @@ import net.minecraft.server.v1_9_R2.Packet;
 import org.bukkit.entity.Player;
 import org.kubithon.replicate.ReplicatePlugin;
 import org.kubithon.replicate.broking.BrokingConstant;
-import org.kubithon.replicate.replication.protocol.KubicketContainer;
+import org.kubithon.replicate.replication.protocol.KubithonPacket;
 
 import java.util.Base64;
 
@@ -27,13 +27,13 @@ public class ReplicationChannelHandler extends ChannelInboundHandlerAdapter {
     // Called when a packet is received.
     @Override
     public void channelRead(ChannelHandlerContext context, Object msg) throws Exception {
-        Packet<?> packet = (Packet<?>) msg;
-        KubicketContainer container = KubicketContainer.generateKbContainer(packet);
+        Packet<?> receivedPacket = (Packet<?>) msg;
+        KubithonPacket packet = KubithonPacket.generateKubicket(receivedPacket);
 
-        if (container != null) { // The packet has been recognized
+        if (packet != null) { // The packet has been recognized
             plugin.getMessageBroker().publish(
-                    BrokingConstant.REPLICATION_TOPIC.concat(player.getName()),
-                    Base64.getEncoder().encodeToString(container.serialize())
+                    BrokingConstant.REPLICATION_PATTERN.concat(player.getName()),
+                    Base64.getEncoder().encodeToString(packet.serialize())
             );
         }
 

@@ -81,14 +81,19 @@ public class JedisPubSubManager extends AbstractPubSubManager<RedisCredentials> 
         return new JedisPubSub() {
             @Override
             public void onMessage(String topic, String message) {
-                ReplicatePlugin.get().getLogger().info("Message received"); //TODO : remove this debug message
-                callTopicListeners(topic, message);
+                //TODO : remove this debug message
+                ReplicatePlugin.get().getLogger().info("A non-pattern message has been received and will not be processed.");
             }
 
             @Override
             public void onPMessage(String pattern, String topic, String message) {
-                callPatternListeners(pattern, topic, message);
-                ReplicatePlugin.get().getLogger().info("Pattern received"); //TODO : remove this debug message
+                callListeners(pattern, topic, message);
+                //TODO : remove this debug message
+                ReplicatePlugin.get().getLogger().info(
+                        "Pattern received. Pattern: " +
+                                pattern + " topic: " +
+                                topic + " message: " +
+                                message);
             }
         };
     }

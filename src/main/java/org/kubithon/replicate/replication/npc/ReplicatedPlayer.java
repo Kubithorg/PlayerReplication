@@ -10,7 +10,7 @@ import org.bukkit.craftbukkit.v1_9_R2.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.kubithon.replicate.ReplicatePlugin;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.UUID;
 
 /**
@@ -28,14 +28,6 @@ public class ReplicatedPlayer {
         ReplicatePlugin.get().getLogger().info("This server is now displaying the fake player " + name + ".");
     }
 
-    public void spawn(Location loc, List<Player> players) {
-        npcEntity.setLocation(loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
-        for (Player pls : players) {
-            PlayerConnection playerConnection = ((CraftPlayer) pls).getHandle().playerConnection;
-            playerConnection.sendPacket(new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.ADD_PLAYER, npcEntity));
-            playerConnection.sendPacket(new PacketPlayOutNamedEntitySpawn(npcEntity));
-        }
-    }
 
     public void moveArm(EnumHand hand) {
         PacketPlayOutAnimation handPacket = new PacketPlayOutAnimation();
@@ -45,6 +37,8 @@ public class ReplicatedPlayer {
     public void updateLook(float pitch, float yaw) {
 
     }
+
+    // <editor-fold desc="Teleportation methods">
 
     public void teleport(Location loc) {
         npcEntity.teleportTo(loc, false);
@@ -56,6 +50,26 @@ public class ReplicatedPlayer {
 
     public void teleport(float x, float y, float z, float pitch, float yaw) {
         npcEntity.setLocation(x, y, z, yaw, pitch);
+    }
+
+    // </editor-fold>
+
+    public void spawn(Location loc, Collection<? extends Player> viewers) {
+        npcEntity.setLocation(loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
+        for (Player pls : viewers) {
+            PlayerConnection playerConnection = ((CraftPlayer) pls).getHandle().playerConnection;
+            playerConnection.sendPacket(new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.ADD_PLAYER, npcEntity));
+            playerConnection.sendPacket(new PacketPlayOutNamedEntitySpawn(npcEntity));
+        }
+    }
+
+    public void dispawn(Collection<? extends Player> viewers) {
+        PacketPlayOutEntityDestroy deathPacket = new PacketPlayOutEntityDestroy(npcEntity.getId());
+        for (Player pls : viewers) {
+            PlayerConnection playerConnection = ((CraftPlayer) pls).getHandle().playerConnection;
+            playerConnection.sendPacket(deathPacket);
+        }
+        npcEntity.die();
     }
 
     public Location getLocation() {
