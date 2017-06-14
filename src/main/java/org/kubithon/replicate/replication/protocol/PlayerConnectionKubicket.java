@@ -14,7 +14,7 @@ public class PlayerConnectionKubicket extends KubithonPacket {
     private String playerName;
     private String playerUuid;
 
-    PlayerConnectionKubicket() {
+    public PlayerConnectionKubicket() {
         super(KubicketType.PLAYER_CONNECTION);
     }
 
@@ -38,7 +38,7 @@ public class PlayerConnectionKubicket extends KubithonPacket {
      *
      * @param playerName Name / pseudo of the player.
      */
-    void setPlayerName(String playerName) {
+    public void setPlayerName(String playerName) {
         this.playerName = playerName;
     }
 
@@ -55,7 +55,7 @@ public class PlayerConnectionKubicket extends KubithonPacket {
      *
      * @param playerUuid {@link String} representation of the UUID of the player.
      */
-    void setPlayerUuid(String playerUuid) {
+    public void setPlayerUuid(String playerUuid) {
         this.playerUuid = playerUuid;
     }
 

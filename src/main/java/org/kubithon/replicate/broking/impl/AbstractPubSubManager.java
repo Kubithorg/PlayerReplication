@@ -8,7 +8,7 @@ import org.kubithon.replicate.broking.PubSubManager;
 
 /**
  * @param <T> Credentials specific to the message broker.
- * @author Oscar Davis
+ * @author Oscar Davis, troopy28
  * @since 1.0.0
  */
 public abstract class AbstractPubSubManager<T extends Credentials> implements PubSubManager<T> {
@@ -16,7 +16,7 @@ public abstract class AbstractPubSubManager<T extends Credentials> implements Pu
      * Key: the topic.
      * Value: the listener.
      */
-    protected Multimap<String, MessageListener> listeners = HashMultimap.create();
+    private Multimap<String, MessageListener> listeners = HashMultimap.create();
 
     @Override
     public void subscribe(String topic, MessageListener listener) {

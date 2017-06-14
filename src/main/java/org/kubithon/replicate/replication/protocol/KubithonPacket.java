@@ -1,8 +1,7 @@
 package org.kubithon.replicate.replication.protocol;
 
-import com.mojang.authlib.GameProfile;
 import net.minecraft.server.v1_9_R2.Packet;
-import net.minecraft.server.v1_9_R2.PacketLoginInStart;
+import net.minecraft.server.v1_9_R2.PacketPlayInArmAnimation;
 import net.minecraft.server.v1_9_R2.PacketPlayInFlying;
 import org.apache.commons.lang.ArrayUtils;
 
@@ -19,9 +18,9 @@ import java.util.List;
 public abstract class KubithonPacket {
 
     private KubicketType type;
-    protected List<Byte> packetBytesList;
+    private List<Byte> packetBytesList;
 
-    protected KubithonPacket(KubicketType kubicketType) {
+    KubithonPacket(KubicketType kubicketType) {
         type = kubicketType;
         packetBytesList = new ArrayList<>();
     }
@@ -51,8 +50,9 @@ public abstract class KubithonPacket {
             * Calling the a or b method with a FLOAT as argument makes it returns the yaw and the pitch, respectively.
             */
             kubicket.setxPos((float) posPacket.a(0.0d)); // a() returns the x coordinate...
-            kubicket.setyPos((float) posPacket.b(0.0d)); // b() returns the x coordinate...
-            kubicket.setzPos((float) posPacket.c(0.0d)); // c() returns the x coordinate...
+            kubicket.setyPos((float) posPacket.b(0.0d)); // b() returns the y coordinate...
+            kubicket.setzPos((float) posPacket.c(0.0d)); // c() returns the z coordinate...
+            kubicket.setOnGround(posPacket.a());         // a() with no args returns the onGround state
             finalKubicket = kubicket;
         }
         // Position and look
@@ -66,10 +66,11 @@ public abstract class KubithonPacket {
             * Calling the a or b method with a FLOAT as argument makes it returns the yaw and the pitch, respectively.
             */
             kubicket.setxPos((float) posLookPacket.a(0.0d)); // a() returns the x coordinate...
-            kubicket.setyPos((float) posLookPacket.b(0.0d)); // b() returns the x coordinate...
-            kubicket.setzPos((float) posLookPacket.c(0.0d)); // c() returns the x coordinate...
+            kubicket.setyPos((float) posLookPacket.b(0.0d)); // b() returns the y coordinate...
+            kubicket.setzPos((float) posLookPacket.c(0.0d)); // c() returns the z coordinate...
             kubicket.setYaw(posLookPacket.a(0.0f));          // a() returns the yaw...
             kubicket.setPitch(posLookPacket.b(0.0f));        // b() returns the pitch...
+            kubicket.setOnGround(posLookPacket.a());         // a() with no args returns the onGround state
             finalKubicket = kubicket;
         }
         // Look only
@@ -83,14 +84,10 @@ public abstract class KubithonPacket {
             kubicket.setYaw(lookPacket.a(0.0f));          // a() returns the yaw...
             kubicket.setPitch(lookPacket.b(0.0f));       // b() returns the pitch...
             finalKubicket = kubicket;
-        }
-        // Connection
-        else if (receivedPacket instanceof PacketLoginInStart) {
-            PacketLoginInStart loginPacket = (PacketLoginInStart) receivedPacket;
-            PlayerConnectionKubicket kubicket = new PlayerConnectionKubicket();
-            GameProfile playerProfile = loginPacket.a();
-            kubicket.setPlayerName(playerProfile.getName());
-            kubicket.setPlayerUuid(playerProfile.getId().toString());
+        } else if (receivedPacket instanceof PacketPlayInArmAnimation) {
+            PacketPlayInArmAnimation handPacket = (PacketPlayInArmAnimation) receivedPacket;
+            PlayerHandAnimationKubicket kubicket = new PlayerHandAnimationKubicket();
+            kubicket.setHand(handPacket.a()); // a() gives us the hand
             finalKubicket = kubicket;
         }
 
@@ -100,13 +97,14 @@ public abstract class KubithonPacket {
     protected abstract void composePacket();
 
     public byte[] serialize() {
+        writeByte(type.getId());
         composePacket();
         return ArrayUtils.toPrimitive(
                 packetBytesList.toArray(new Byte[packetBytesList.size()])
         );
     }
 
-    public static KubithonPacket deserialize(byte[] packetBytes) {
+    public static KubithonPacket deserialize(byte[] packetBytes) { //NOSONAR : more than 10 packets so... shut up Sonar ;)
         byte packetId = packetBytes[0];
         switch (KubicketType.fromId(packetId)) {
             case PLAYER_CONNECTION:
@@ -117,19 +115,28 @@ public abstract class KubithonPacket {
                 return deserializePositionKubicket(packetBytes);
             case PLAYER_POSITION_LOOK:
                 return deserializePositionLookKubicket(packetBytes);
+            case PLAYER_HAND_ANIMATION:
+                return deserializeHandAnimKubicket(packetBytes);
             default:
                 return null;
         }
     }
 
-    private static PlayerConnectionKubicket deserializeConnectionKubicket(byte[] packetBytes) {
-        byte state = packetBytes[2];
+    private static PlayerHandAnimationKubicket deserializeHandAnimKubicket(byte[] packetBytes) {
+        byte hand = packetBytes[1];
+        PlayerHandAnimationKubicket handAnimKubicket = new PlayerHandAnimationKubicket();
+        handAnimKubicket.setHand(hand);
+        return handAnimKubicket;
+    }
 
-        byte[] uuidBytes = Arrays.copyOfRange(packetBytes, 3, 39); // 3 + 36 = 39. UUID has 36 characters.
+    private static PlayerConnectionKubicket deserializeConnectionKubicket(byte[] packetBytes) {
+        byte state = packetBytes[1];
+
+        byte[] uuidBytes = Arrays.copyOfRange(packetBytes, 2, 38); // 2 + 36 = 38. UUID has 36 characters.
         String uuid = new String(uuidBytes, StandardCharsets.UTF_8);
 
-        byte pseudoLength = packetBytes[39];
-        byte[] pseudoBytes = Arrays.copyOfRange(packetBytes, 40, 40 + pseudoLength);
+        byte pseudoLength = packetBytes[38];
+        byte[] pseudoBytes = Arrays.copyOfRange(packetBytes, 39, 39 + pseudoLength);
         String pseudo = new String(pseudoBytes, StandardCharsets.UTF_8);
 
         PlayerConnectionKubicket connectionKubicket = new PlayerConnectionKubicket();
@@ -141,10 +148,10 @@ public abstract class KubithonPacket {
     }
 
     private static PlayerLookKubicket deserializeLookKubicket(byte[] packetBytes) {
-        byte[] pitchBytes = Arrays.copyOfRange(packetBytes, 2, 6);
+        byte[] pitchBytes = Arrays.copyOfRange(packetBytes, 1, 5);
         float pitch = KubithonPacket.byteArrayToFloat(pitchBytes);
 
-        byte[] yawBytes = Arrays.copyOfRange(packetBytes, 6, 10);
+        byte[] yawBytes = Arrays.copyOfRange(packetBytes, 5, 9);
         float yaw = KubithonPacket.byteArrayToFloat(yawBytes);
 
         PlayerLookKubicket lookKubicket = new PlayerLookKubicket();
@@ -155,13 +162,13 @@ public abstract class KubithonPacket {
     }
 
     private static PlayerPositionKubicket deserializePositionKubicket(byte[] packetBytes) {
-        byte[] xBytes = Arrays.copyOfRange(packetBytes, 2, 6);
+        byte[] xBytes = Arrays.copyOfRange(packetBytes, 1, 5);
         float x = KubithonPacket.byteArrayToFloat(xBytes);
 
-        byte[] yBytes = Arrays.copyOfRange(packetBytes, 6, 10);
+        byte[] yBytes = Arrays.copyOfRange(packetBytes, 5, 9);
         float y = KubithonPacket.byteArrayToFloat(yBytes);
 
-        byte[] zBytes = Arrays.copyOfRange(packetBytes, 10, 14);
+        byte[] zBytes = Arrays.copyOfRange(packetBytes, 9, 13);
         float z = KubithonPacket.byteArrayToFloat(zBytes);
 
         PlayerPositionKubicket positionKubicket = new PlayerPositionKubicket();
@@ -173,19 +180,19 @@ public abstract class KubithonPacket {
     }
 
     private static PlayerPositionLookKubicket deserializePositionLookKubicket(byte[] packetBytes) {
-        byte[] xBytes = Arrays.copyOfRange(packetBytes, 2, 6);
+        byte[] xBytes = Arrays.copyOfRange(packetBytes, 1, 5);
         float x = KubithonPacket.byteArrayToFloat(xBytes);
 
-        byte[] yBytes = Arrays.copyOfRange(packetBytes, 6, 10);
+        byte[] yBytes = Arrays.copyOfRange(packetBytes, 5, 9);
         float y = KubithonPacket.byteArrayToFloat(yBytes);
 
-        byte[] zBytes = Arrays.copyOfRange(packetBytes, 10, 14);
+        byte[] zBytes = Arrays.copyOfRange(packetBytes, 9, 13);
         float z = KubithonPacket.byteArrayToFloat(zBytes);
 
-        byte[] pitchBytes = Arrays.copyOfRange(packetBytes, 14, 18);
+        byte[] pitchBytes = Arrays.copyOfRange(packetBytes, 13, 17);
         float pitch = KubithonPacket.byteArrayToFloat(pitchBytes);
 
-        byte[] yawBytes = Arrays.copyOfRange(packetBytes, 18, 22);
+        byte[] yawBytes = Arrays.copyOfRange(packetBytes, 17, 21);
         float yaw = KubithonPacket.byteArrayToFloat(yawBytes);
 
         PlayerPositionLookKubicket positionLookKubicket = new PlayerPositionLookKubicket();
@@ -253,7 +260,7 @@ public abstract class KubithonPacket {
 
     // <editor-fold desc="Static utils methods">
 
-    public byte booleanToByte(boolean value) {
+    byte booleanToByte(boolean value) {
         return (byte) (value ? 1 : 0);
     }
 
@@ -261,7 +268,7 @@ public abstract class KubithonPacket {
         return value == 1;
     }
 
-    public byte[] shortToByteArray(short value) {
+    byte[] shortToByteArray(short value) {
         return new byte[]{(byte) ((value >> 8) & 0xFF), (byte) (value & 0xFF)};
     }
 
@@ -269,15 +276,15 @@ public abstract class KubithonPacket {
         return (short) (((value[0] & 0xFF) << 8) | (value[1] & 0xFF));
     }
 
-    public byte[] longToByteArray(long value) {
+    byte[] longToByteArray(long value) {
         return ByteBuffer.allocate(8).putLong(value).array();
     }
 
-    public byte[] floatToByteArray(float value) {
+    byte[] floatToByteArray(float value) {
         return ByteBuffer.allocate(4).putFloat(value).array();
     }
 
-    public static float byteArrayToFloat(byte[] value) {
+    static float byteArrayToFloat(byte[] value) {
         return ByteBuffer.wrap(value).getFloat();
     }
 
@@ -285,13 +292,13 @@ public abstract class KubithonPacket {
         return ByteBuffer.wrap(value).getDouble();
     }
 
-    public byte[] doubleToByteArray(double value) {
+    byte[] doubleToByteArray(double value) {
         byte[] bytes = new byte[8];
         ByteBuffer.wrap(bytes).putDouble(value);
         return bytes;
     }
 
-    public byte[] integerToByteArray(int value) {
+    byte[] integerToByteArray(int value) {
         ByteBuffer buffer = ByteBuffer.allocate(4);
         buffer.putInt(value);
         return buffer.array();

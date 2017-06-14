@@ -88,12 +88,6 @@ public class JedisPubSubManager extends AbstractPubSubManager<RedisCredentials> 
             @Override
             public void onPMessage(String pattern, String topic, String message) {
                 callListeners(pattern, topic, message);
-                //TODO : remove this debug message
-                ReplicatePlugin.get().getLogger().info(
-                        "Pattern received. Pattern: " +
-                                pattern + " topic: " +
-                                topic + " message: " +
-                                message);
             }
         };
     }

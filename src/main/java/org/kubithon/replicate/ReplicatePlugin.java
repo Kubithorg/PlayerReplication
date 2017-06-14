@@ -26,9 +26,9 @@ public class ReplicatePlugin extends JavaPlugin {
 
     private final File credentialsFile = new File(getDataFolder(), "credentials.yml");
 
-    //private PubSubManager<RedisCredentials> broker = new RedisPubSubManager();
     private PubSubManager<RedisCredentials> jedisBroker = new JedisPubSubManager();
     private ReplicationManager replicationManager;
+    private int serverId;
 
     public ReplicatePlugin() {
         instance = this;
@@ -49,19 +49,18 @@ public class ReplicatePlugin extends JavaPlugin {
         getLogger().info("PASSWORD IS " + credentials.getString("redis-pass"));
         getLogger().info("------------------------------------------");
 
-        // ATTENTION: here was written "redis-password", which is wrong according to the YAML file. I've set
-        // "redis-pass" to match the file.
+        serverId = credentials.getInt("server-uid");
+        getLogger().info("THE SERVER UNIQUE ID IS " + serverId);
+
         RedisCredentials connect = new RedisCredentials(
                 credentials.getString("redis-host"),
                 credentials.getInt("redis-port"),
                 credentials.getString("redis-pass"));
 
         try {
-            //broker.connect(connect);
             getLogger().info("Attempting to connect to Redis...");
             jedisBroker.connect(connect);
             getLogger().info("Successfully connected to Redis!");
-            //broker.subscribe(BrokingConstant.REPLICATION_PATTERN.concat("*"), new ReplicationListener());
             getLogger().info("Attempting to subscribe to the pattern :..." + BrokingConstant.REPLICATION_PATTERN.concat("*"));
             jedisBroker.psubscribe(BrokingConstant.REPLICATION_PATTERN.concat("*"), BrokingConstant.REPLICATION_TOPIC, new ReplicationListener());
             getLogger().info(
@@ -120,7 +119,6 @@ public class ReplicatePlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        //broker.disconnect();
         jedisBroker.disconnect();
     }
 
@@ -150,6 +148,14 @@ public class ReplicatePlugin extends JavaPlugin {
     private void registerListeners(Listener... listeners) {
         for (Listener l : listeners)
             getServer().getPluginManager().registerEvents(l, this);
+    }
+
+    /**
+     * @return Returns the unique id of this server in the infrastructure. This is used to retrieve the sender of a
+     * packet over the Redis pub/sub system.
+     */
+    public int getServerId() {
+        return serverId;
     }
 
     /**

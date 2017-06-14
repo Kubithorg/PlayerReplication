@@ -8,17 +8,18 @@ public class PlayerPositionKubicket extends KubithonPacket {
     private float xPos;
     private float yPos;
     private float zPos;
+    private boolean onGround;
 
     PlayerPositionKubicket() {
         super(KubicketType.PLAYER_POSITION);
     }
-
 
     @Override
     protected void composePacket() {
         writeFloat(xPos);
         writeFloat(yPos);
         writeFloat(zPos);
+        writeByte(onGround ? (byte) 1 : (byte) 0);
     }
 
     public float getxPos() {
@@ -43,5 +44,13 @@ public class PlayerPositionKubicket extends KubithonPacket {
 
     void setzPos(float zPos) {
         this.zPos = zPos;
+    }
+
+    public boolean isOnGround() {
+        return onGround;
+    }
+
+    public void setOnGround(boolean onGround) {
+        this.onGround = onGround;
     }
 }

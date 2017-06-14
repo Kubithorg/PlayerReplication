@@ -1,6 +1,5 @@
 package org.kubithon.replicate.broking.impl;
 
-import org.bukkit.craftbukkit.libs.jline.internal.Log;
 import org.kubithon.replicate.ReplicatePlugin;
 import org.kubithon.replicate.broking.BrokingConstant;
 import org.kubithon.replicate.broking.MessageListener;
@@ -23,16 +22,19 @@ public class ReplicationListener implements MessageListener {
         this.replicationManager = ReplicatePlugin.get().getReplicationManager();
     }
 
-
     @Override
     public void patternReceive(String pattern, String topic, String message) {
         int patternLength = BrokingConstant.REPLICATION_PATTERN.length();
 
-        String playerName = topic.substring(patternLength);
-        Log.info("The name of the player is " + playerName);
-        byte[] bytes = Base64.getDecoder().decode(message);
+        int senderUid = Integer.parseInt(topic.substring(patternLength, patternLength + 1));
 
-        KubithonPacket receivedContainer = KubithonPacket.deserialize(bytes);
-        replicationManager.handleKubicket(playerName, receivedContainer);
+        String playerName = topic.substring(patternLength + 1);
+        if (senderUid != ReplicatePlugin.get().getServerId()) {
+            byte[] bytes = Base64.getDecoder().decode(message);
+
+            KubithonPacket receivedKubicket = KubithonPacket.deserialize(bytes);
+            if (receivedKubicket != null)
+                replicationManager.handleKubicket(playerName, receivedKubicket);
+        }
     }
 }

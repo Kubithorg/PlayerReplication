@@ -10,6 +10,7 @@ public enum KubicketType {
     PLAYER_LOOK((byte) 0x1),
     PLAYER_POSITION((byte) 0x02),
     PLAYER_POSITION_LOOK((byte) 0x03),
+    PLAYER_HAND_ANIMATION((byte) 0x04),
 
     UNDEFINED((byte) 0xAA);
 
@@ -33,6 +34,8 @@ public enum KubicketType {
                 return PLAYER_POSITION;
             case 0x03:
                 return PLAYER_POSITION_LOOK;
+            case 0x04:
+                return PLAYER_HAND_ANIMATION;
             default:
                 return UNDEFINED;
         }

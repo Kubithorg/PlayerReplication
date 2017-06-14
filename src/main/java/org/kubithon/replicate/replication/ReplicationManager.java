@@ -1,12 +1,12 @@
 package org.kubithon.replicate.replication;
 
-import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.libs.jline.internal.Log;
-import org.bukkit.entity.Player;
 import org.kubithon.replicate.replication.npc.ReplicatedPlayer;
 import org.kubithon.replicate.replication.protocol.*;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * @author troopy28
@@ -18,14 +18,9 @@ public class ReplicationManager {
      * The map(pseudo, NPC) of the NPCs that are currently displayed on the server.
      */
     private Map<String, ReplicatedPlayer> replicatedPlayers;
-    /**
-     * The connected players that are going to receive the packets from the NPCs.
-     */
-    private List<Player> targets;
 
     public ReplicationManager() {
         replicatedPlayers = new HashMap<>();
-        targets = new ArrayList<>();
     }
 
     /**
@@ -34,50 +29,54 @@ public class ReplicationManager {
      * @param uuid The UUID of the player to replicate.
      * @param name The nickname of the player to replicate.
      */
-    public void registerReplicatedPlayer(UUID uuid, String name) {
+    private void registerReplicatedPlayer(UUID uuid, String name) {
         ReplicatedPlayer replicatedPlayer = new ReplicatedPlayer(uuid, name);
         replicatedPlayers.put(name, replicatedPlayer);
     }
 
-    public void unregisterReplicatedPlayer(String name) {
+    private void unregisterReplicatedPlayer(String name) {
         if (replicatedPlayers.containsKey(name)) {
             ReplicatedPlayer player = replicatedPlayers.get(name);
-            player.dispawn(Bukkit.getOnlinePlayers());
+            player.destroy();
         }
     }
 
-    // TODO : disconnection handling
-    public void handleKubicket(String playerName, KubithonPacket receivedPacket) {
-        Log.info("Handling a kubicket. Player: " + playerName);
+    public void handleKubicket(String playerName, KubithonPacket receivedKubicket) {
+        Log.info("Handling a kubicket. Player: " + playerName + " | PacketType: " + receivedKubicket.getType());
 
-        if (receivedPacket instanceof PlayerLookKubicket) {
-            PlayerLookKubicket lookKubicket = (PlayerLookKubicket) receivedPacket;
+        if (receivedKubicket instanceof PlayerLookKubicket) {
+            PlayerLookKubicket lookKubicket = (PlayerLookKubicket) receivedKubicket;
             replicatedPlayers.get(playerName).updateLook(
                     lookKubicket.getPitch(),
                     lookKubicket.getYaw()
             );
-        } else if (receivedPacket instanceof PlayerPositionKubicket) {
-            PlayerPositionKubicket positionKubicket = (PlayerPositionKubicket) receivedPacket;
+        } else if (receivedKubicket instanceof PlayerPositionKubicket) {
+            PlayerPositionKubicket positionKubicket = (PlayerPositionKubicket) receivedKubicket;
             replicatedPlayers.get(playerName).teleport(
                     positionKubicket.getxPos(),
                     positionKubicket.getyPos(),
-                    positionKubicket.getzPos()
+                    positionKubicket.getzPos(),
+                    positionKubicket.isOnGround()
             );
-        } else if (receivedPacket instanceof PlayerPositionLookKubicket) {
-            PlayerPositionLookKubicket positionLookKubicket = (PlayerPositionLookKubicket) receivedPacket;
+        } else if (receivedKubicket instanceof PlayerPositionLookKubicket) {
+            PlayerPositionLookKubicket positionLookKubicket = (PlayerPositionLookKubicket) receivedKubicket;
             replicatedPlayers.get(playerName).teleport(
                     positionLookKubicket.getxPos(),
                     positionLookKubicket.getyPos(),
                     positionLookKubicket.getzPos(),
                     positionLookKubicket.getPitch(),
-                    positionLookKubicket.getYaw()
+                    positionLookKubicket.getYaw(),
+                    positionLookKubicket.isOnGround()
             );
-        } else if (receivedPacket instanceof PlayerConnectionKubicket) {
-            handleConnectionPacket((PlayerConnectionKubicket) receivedPacket);
+        } else if (receivedKubicket instanceof PlayerConnectionKubicket) {
+            handleConnectionKubicket((PlayerConnectionKubicket) receivedKubicket);
+        } else if (receivedKubicket instanceof PlayerHandAnimationKubicket) {
+            PlayerHandAnimationKubicket handAnimationKubicket = (PlayerHandAnimationKubicket) receivedKubicket;
+            replicatedPlayers.get(playerName).moveArm(handAnimationKubicket.getHand());
         }
     }
 
-    private void handleConnectionPacket(PlayerConnectionKubicket receivedPacket) {
+    private void handleConnectionKubicket(PlayerConnectionKubicket receivedPacket) {
         if (receivedPacket.getState() == 0) {
             registerReplicatedPlayer(
                     UUID.fromString(receivedPacket.getPlayerUuid()),
