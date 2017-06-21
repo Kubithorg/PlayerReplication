@@ -2,6 +2,7 @@ package org.kubithon.replicate;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.craftbukkit.libs.jline.internal.Log;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.kubithon.replicate.broking.BrokingConstant;
@@ -10,6 +11,7 @@ import org.kubithon.replicate.broking.impl.ReplicationListener;
 import org.kubithon.replicate.broking.impl.redis.RedisCredentials;
 import org.kubithon.replicate.broking.jedis.JedisPubSubManager;
 import org.kubithon.replicate.listener.ConnectionListener;
+import org.kubithon.replicate.listener.InventoryClickListener;
 import org.kubithon.replicate.replication.ReplicationManager;
 
 import java.io.File;
@@ -52,15 +54,14 @@ public class ReplicatePlugin extends JavaPlugin {
         serverId = credentials.getInt("server-uid");
         getLogger().info("THE SERVER UNIQUE ID IS " + serverId);
 
-        RedisCredentials connect = new RedisCredentials(
+        RedisCredentials redisCredentials = new RedisCredentials(
                 credentials.getString("redis-host"),
                 credentials.getInt("redis-port"),
                 credentials.getString("redis-pass"));
 
         try {
             getLogger().info("Attempting to connect to Redis...");
-            jedisBroker.connect(connect);
-            getLogger().info("Successfully connected to Redis!");
+            connectToRedis(redisCredentials);
             getLogger().info("Attempting to subscribe to the pattern :..." + BrokingConstant.REPLICATION_PATTERN.concat("*"));
             jedisBroker.psubscribe(BrokingConstant.REPLICATION_PATTERN.concat("*"), BrokingConstant.REPLICATION_TOPIC, new ReplicationListener());
             getLogger().info(
@@ -70,7 +71,19 @@ public class ReplicatePlugin extends JavaPlugin {
             getLogger().severe(ExceptionUtils.getFullStackTrace(ex));
         }
 
-        registerListeners(new ConnectionListener());
+        registerListeners(new ConnectionListener(), new InventoryClickListener());
+    }
+
+    private void connectToRedis(RedisCredentials credentials) {
+        boolean connectionSuccess = false;
+        try {
+            jedisBroker.connect(credentials);
+            connectionSuccess = true;
+        } catch (Exception ex) {
+            Log.error(ExceptionUtils.getFullStackTrace(ex));
+        }
+        if (connectionSuccess)
+            getLogger().info("Successfully connected to Redis!");
     }
 
     /**
@@ -128,7 +141,6 @@ public class ReplicatePlugin extends JavaPlugin {
      * @return the message broker implementation.
      */
     public PubSubManager getMessageBroker() {
-        //return broker;
         return jedisBroker;
     }
 

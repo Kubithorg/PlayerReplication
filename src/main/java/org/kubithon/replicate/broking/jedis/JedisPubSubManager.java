@@ -38,7 +38,11 @@ public class JedisPubSubManager extends AbstractPubSubManager<RedisCredentials> 
                 publisherJedis.auth(redisPassword);
                 subscriberJedis.auth(redisPassword);
             } catch (Exception ex) {
-                ReplicatePlugin.get().getLogger().severe(ExceptionUtils.getFullStackTrace(ex));
+                String fullStackTrace = ExceptionUtils.getFullStackTrace(ex);
+                if (fullStackTrace.contains("but no password is set"))
+                    Log.error("Error while connecting to the Redis Server: " + ex.getMessage());
+                else
+                    Log.error(fullStackTrace);
             }
         }
         this.pubSub = createPubSub();

@@ -117,6 +117,8 @@ public abstract class KubithonPacket {
                 return deserializePositionLookKubicket(packetBytes);
             case PLAYER_HAND_ANIMATION:
                 return deserializeHandAnimKubicket(packetBytes);
+            case PLAYER_EQUIPMENT:
+                return deserializePlayerEquipmentKubicket(packetBytes);
             default:
                 return null;
         }
@@ -203,6 +205,36 @@ public abstract class KubithonPacket {
         positionLookKubicket.setYaw(yaw);
 
         return positionLookKubicket;
+    }
+
+    private static PlayerEquipmentKubicket deserializePlayerEquipmentKubicket(byte[] packetBytes) {
+        byte[] helmetBytes = Arrays.copyOfRange(packetBytes, 1, 3);
+        short helmetId = KubithonPacket.byteArrayToShort(helmetBytes);
+
+        byte[] chestBytes = Arrays.copyOfRange(packetBytes, 3, 5);
+        short chestId = KubithonPacket.byteArrayToShort(chestBytes);
+
+        byte[] leggingsBytes = Arrays.copyOfRange(packetBytes, 5, 7);
+        short leggingsId = KubithonPacket.byteArrayToShort(leggingsBytes);
+
+        byte[] bootsBytes = Arrays.copyOfRange(packetBytes, 7, 9);
+        short bootsId = KubithonPacket.byteArrayToShort(bootsBytes);
+
+        byte[] mainHandBytes = Arrays.copyOfRange(packetBytes, 9, 11);
+        short mainHandId = KubithonPacket.byteArrayToShort(mainHandBytes);
+
+        byte[] offHandBytes = Arrays.copyOfRange(packetBytes, 11, 13);
+        short offHandId = KubithonPacket.byteArrayToShort(offHandBytes);
+
+        PlayerEquipmentKubicket equipmentKubicket = new PlayerEquipmentKubicket();
+        equipmentKubicket.setHelmetId(helmetId);
+        equipmentKubicket.setChestId(chestId);
+        equipmentKubicket.setLeggingsId(leggingsId);
+        equipmentKubicket.setBootsId(bootsId);
+        equipmentKubicket.setMainHandId(mainHandId);
+        equipmentKubicket.setOffHandId(offHandId);
+
+        return equipmentKubicket;
     }
 
     // <editor-fold desc="Shorthand for writing bytes in the packet">

@@ -8,7 +8,9 @@ import org.bukkit.craftbukkit.libs.jline.internal.Log;
 import org.bukkit.craftbukkit.v1_9_R2.CraftServer;
 import org.bukkit.craftbukkit.v1_9_R2.CraftWorld;
 import org.bukkit.craftbukkit.v1_9_R2.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_9_R2.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.kubithon.replicate.ReplicatePlugin;
 
 import java.util.ArrayList;
@@ -50,7 +52,58 @@ public class ReplicatedPlayer implements Runnable {
     }
 
     public void updateLook(float pitch, float yaw) {
+        npcEntity.pitch = pitch;
+        npcEntity.yaw = yaw;
 
+        PacketPlayOutEntity.PacketPlayOutEntityLook bodyLookPacket = new PacketPlayOutEntity.PacketPlayOutEntityLook(
+                npcEntity.getId(),
+                getByteForAngle(yaw),
+                getByteForAngle(pitch),
+                npcEntity.onGround
+        );
+        sendPacketToAllTargets(bodyLookPacket);
+
+        PacketPlayOutEntityHeadRotation newHeadLook = new PacketPlayOutEntityHeadRotation(
+                npcEntity,
+                getByteForAngle(npcEntity.yaw)
+        );
+        sendPacketToAllTargets(newHeadLook);
+    }
+
+    public void setItemInMainHand(org.bukkit.Material material) {
+        setItemInSlot(material, EnumItemSlot.MAINHAND);
+    }
+
+    public void setItemInOffHand(org.bukkit.Material material) {
+        setItemInSlot(material, EnumItemSlot.OFFHAND);
+    }
+
+    public void setHelmet(org.bukkit.Material material) {
+        setItemInSlot(material, EnumItemSlot.HEAD);
+    }
+
+    public void setChestplate(org.bukkit.Material material) {
+        setItemInSlot(material, EnumItemSlot.CHEST);
+    }
+
+    public void setLeggings(org.bukkit.Material material) {
+        setItemInSlot(material, EnumItemSlot.LEGS);
+    }
+
+    public void setBoots(org.bukkit.Material material) {
+        setItemInSlot(material, EnumItemSlot.FEET);
+    }
+
+    private void setItemInSlot(org.bukkit.Material material, EnumItemSlot slot) {
+        org.bukkit.inventory.ItemStack bukkitStack = new ItemStack(material);
+        net.minecraft.server.v1_9_R2.ItemStack nmsStack = CraftItemStack.asNMSCopy(bukkitStack);
+
+        PacketPlayOutEntityEquipment equipmentPacket = new PacketPlayOutEntityEquipment(
+                npcEntity.getId(),
+                slot,
+                nmsStack
+        );
+        sendPacketToAllTargets(equipmentPacket);
     }
 
     // <editor-fold desc="Teleportation methods">
@@ -92,8 +145,14 @@ public class ReplicatedPlayer implements Runnable {
                 getByteForAngle(pitch),
                 onGround
         );
-
         sendPacketToAllTargets(motionPacket);
+
+        PacketPlayOutEntityHeadRotation newHeadLook = new PacketPlayOutEntityHeadRotation(
+                npcEntity,
+                getByteForAngle(npcEntity.yaw)
+        );
+        sendPacketToAllTargets(newHeadLook);
+
         Log.info("Updated the position of the NPC " + npcEntity.displayName);
     }
 
@@ -156,12 +215,6 @@ public class ReplicatedPlayer implements Runnable {
                 getByteForAngle(npcEntity.pitch),
                 npcEntity.onGround);
         sendPacketToAllTargets(newLook);
-
-        PacketPlayOutEntityHeadRotation newHeadLook = new PacketPlayOutEntityHeadRotation(
-                npcEntity,
-                getByteForAngle(npcEntity.pitch)
-        );
-        sendPacketToAllTargets(newHeadLook);
     }
 
     private byte getByteForAngle(float angle) {

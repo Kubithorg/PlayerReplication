@@ -1,5 +1,6 @@
 package org.kubithon.replicate.replication;
 
+import org.bukkit.Material;
 import org.bukkit.craftbukkit.libs.jline.internal.Log;
 import org.kubithon.replicate.replication.npc.ReplicatedPlayer;
 import org.kubithon.replicate.replication.protocol.*;
@@ -73,6 +74,15 @@ public class ReplicationManager {
         } else if (receivedKubicket instanceof PlayerHandAnimationKubicket) {
             PlayerHandAnimationKubicket handAnimationKubicket = (PlayerHandAnimationKubicket) receivedKubicket;
             replicatedPlayers.get(playerName).moveArm(handAnimationKubicket.getHand());
+        } else if (receivedKubicket instanceof PlayerEquipmentKubicket) {
+            PlayerEquipmentKubicket equipmentKubicket = (PlayerEquipmentKubicket) receivedKubicket;
+            ReplicatedPlayer replicatedPlayer = replicatedPlayers.get(playerName);
+            replicatedPlayer.setHelmet(Material.values()[equipmentKubicket.getHelmetId()]);
+            replicatedPlayer.setChestplate(Material.values()[equipmentKubicket.getChestId()]);
+            replicatedPlayer.setLeggings(Material.values()[equipmentKubicket.getLeggingsId()]);
+            replicatedPlayer.setBoots(Material.values()[equipmentKubicket.getBootsId()]);
+            replicatedPlayer.setItemInMainHand(Material.values()[equipmentKubicket.getMainHandId()]);
+            replicatedPlayer.setItemInOffHand(Material.values()[equipmentKubicket.getOffHandId()]);
         }
     }
 
