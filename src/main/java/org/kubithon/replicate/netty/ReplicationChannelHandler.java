@@ -56,9 +56,9 @@ class ReplicationChannelHandler extends ChannelInboundHandlerAdapter {
             if (playerEquipment.getBoots() != null)
                 equipmentKubicket.setBootsId((short) playerEquipment.getBoots().getType().ordinal());
             if (playerEquipment.getItemInMainHand() != null)
-                equipmentKubicket.setMainHandId((short) playerEquipment.getItemInMainHand().getType().ordinal());
+                equipmentKubicket.setMainHandId((short) player.getInventory().getItemInMainHand().getType().ordinal());
             if (playerEquipment.getItemInOffHand() != null)
-                equipmentKubicket.setOffHandId((short) playerEquipment.getItemInOffHand().getType().ordinal());
+                equipmentKubicket.setOffHandId((short) player.getInventory().getItemInOffHand().getType().ordinal());
             plugin.getMessageBroker().publish(
                     BrokingConstant.REPLICATION_PATTERN.concat(String.valueOf(plugin.getServerId())).concat(player.getName()),
                     Base64.getEncoder().encodeToString(equipmentKubicket.serialize())

@@ -12,6 +12,7 @@ import org.kubithon.replicate.broking.impl.redis.RedisCredentials;
 import org.kubithon.replicate.broking.jedis.JedisPubSubManager;
 import org.kubithon.replicate.listener.ConnectionListener;
 import org.kubithon.replicate.listener.InventoryClickListener;
+import org.kubithon.replicate.listener.ItemHeldChangedListener;
 import org.kubithon.replicate.replication.ReplicationManager;
 
 import java.io.File;
@@ -71,7 +72,7 @@ public class ReplicatePlugin extends JavaPlugin {
             getLogger().severe(ExceptionUtils.getFullStackTrace(ex));
         }
 
-        registerListeners(new ConnectionListener(), new InventoryClickListener());
+        registerListeners(new ConnectionListener(), new InventoryClickListener(), new ItemHeldChangedListener());
     }
 
     private void connectToRedis(RedisCredentials credentials) {

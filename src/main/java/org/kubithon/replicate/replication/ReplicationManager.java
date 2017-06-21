@@ -2,9 +2,14 @@ package org.kubithon.replicate.replication;
 
 import org.bukkit.Material;
 import org.bukkit.craftbukkit.libs.jline.internal.Log;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.EntityEquipment;
+import org.kubithon.replicate.ReplicatePlugin;
+import org.kubithon.replicate.broking.BrokingConstant;
 import org.kubithon.replicate.replication.npc.ReplicatedPlayer;
 import org.kubithon.replicate.replication.protocol.*;
 
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -95,5 +100,32 @@ public class ReplicationManager {
         } else if (receivedPacket.getState() == 1) {
             unregisterReplicatedPlayer(receivedPacket.getPlayerName());
         }
+    }
+
+    public static void sendPlayerStuff(Player player) {
+        EntityEquipment playerEquipment = player.getEquipment();
+
+        // Send the player stuff
+        PlayerEquipmentKubicket equipmentKubicket = new PlayerEquipmentKubicket();
+
+        if (playerEquipment.getHelmet() != null)
+            equipmentKubicket.setHelmetId((short) playerEquipment.getHelmet().getType().ordinal());
+        if (playerEquipment.getChestplate() != null)
+            equipmentKubicket.setChestId((short) playerEquipment.getChestplate().getType().ordinal());
+        if (playerEquipment.getLeggings() != null)
+            equipmentKubicket.setLeggingsId((short) playerEquipment.getLeggings().getType().ordinal());
+        if (playerEquipment.getBoots() != null)
+            equipmentKubicket.setBootsId((short) playerEquipment.getBoots().getType().ordinal());
+        if (player.getInventory().getItemInMainHand() != null)
+            equipmentKubicket.setMainHandId((short) player.getInventory().getItemInMainHand().getType().ordinal());
+        if (player.getInventory().getItemInMainHand() != null)
+            equipmentKubicket.setOffHandId((short) player.getInventory().getItemInOffHand().getType().ordinal());
+
+        ReplicatePlugin.get().getMessageBroker().publish(
+                BrokingConstant.REPLICATION_PATTERN.concat(
+                        String.valueOf(ReplicatePlugin.get().getServerId()))
+                        .concat(player.getName()),
+                Base64.getEncoder().encodeToString(equipmentKubicket.serialize())
+        );
     }
 }

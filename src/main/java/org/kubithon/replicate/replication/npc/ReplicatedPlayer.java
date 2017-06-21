@@ -11,6 +11,7 @@ import org.bukkit.craftbukkit.v1_9_R2.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_9_R2.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitTask;
 import org.kubithon.replicate.ReplicatePlugin;
 
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ public class ReplicatedPlayer implements Runnable {
      */
     private static final int NPC_VISIBILITY_DISTANCE = 70;
     private EntityPlayer npcEntity;
+    private BukkitTask updateTask;
 
     /**
      * The connected players that are going to receive the packets from this NPC.
@@ -42,7 +44,7 @@ public class ReplicatedPlayer implements Runnable {
         ReplicatePlugin.get().getLogger().info("This server is now displaying the fake player " + name + ".");
         targets = new ArrayList<>();
 
-        Bukkit.getScheduler().runTaskTimerAsynchronously(ReplicatePlugin.get(), this, 5, 5); // Run this in 5 ticks
+        updateTask = Bukkit.getScheduler().runTaskTimerAsynchronously(ReplicatePlugin.get(), this, 5, 5); // Run this in 5 ticks
     }
 
 
@@ -96,6 +98,30 @@ public class ReplicatedPlayer implements Runnable {
 
     private void setItemInSlot(org.bukkit.Material material, EnumItemSlot slot) {
         org.bukkit.inventory.ItemStack bukkitStack = new ItemStack(material);
+
+        switch (slot) {
+            case HEAD:
+                npcEntity.getBukkitEntity().getEquipment().setHelmet(bukkitStack);
+                break;
+            case CHEST:
+                npcEntity.getBukkitEntity().getEquipment().setChestplate(bukkitStack);
+                break;
+            case LEGS:
+                npcEntity.getBukkitEntity().getEquipment().setLeggings(bukkitStack);
+                break;
+            case FEET:
+                npcEntity.getBukkitEntity().getEquipment().setLeggings(bukkitStack);
+                break;
+            case MAINHAND:
+                npcEntity.getBukkitEntity().getEquipment().setItemInMainHand(bukkitStack);
+                break;
+            case OFFHAND:
+                npcEntity.getBukkitEntity().getEquipment().setItemInOffHand(bukkitStack);
+                break;
+            default:
+                break;
+        }
+
         net.minecraft.server.v1_9_R2.ItemStack nmsStack = CraftItemStack.asNMSCopy(bukkitStack);
 
         PacketPlayOutEntityEquipment equipmentPacket = new PacketPlayOutEntityEquipment(
@@ -104,6 +130,52 @@ public class ReplicatedPlayer implements Runnable {
                 nmsStack
         );
         sendPacketToAllTargets(equipmentPacket);
+    }
+
+    private void sendEquipmentTo(Player target) {
+        PlayerConnection playerConnection = ((CraftPlayer) target).getHandle().playerConnection;
+
+        PacketPlayOutEntityEquipment equipmentPacket = new PacketPlayOutEntityEquipment(
+                npcEntity.getId(),
+                EnumItemSlot.HEAD,
+                CraftItemStack.asNMSCopy(npcEntity.getBukkitEntity().getEquipment().getHelmet())
+        );
+        playerConnection.sendPacket(equipmentPacket);
+
+        equipmentPacket = new PacketPlayOutEntityEquipment(
+                npcEntity.getId(),
+                EnumItemSlot.CHEST,
+                CraftItemStack.asNMSCopy(npcEntity.getBukkitEntity().getEquipment().getChestplate())
+        );
+        playerConnection.sendPacket(equipmentPacket);
+
+        equipmentPacket = new PacketPlayOutEntityEquipment(
+                npcEntity.getId(),
+                EnumItemSlot.LEGS,
+                CraftItemStack.asNMSCopy(npcEntity.getBukkitEntity().getEquipment().getLeggings())
+        );
+        playerConnection.sendPacket(equipmentPacket);
+
+        equipmentPacket = new PacketPlayOutEntityEquipment(
+                npcEntity.getId(),
+                EnumItemSlot.FEET,
+                CraftItemStack.asNMSCopy(npcEntity.getBukkitEntity().getEquipment().getBoots())
+        );
+        playerConnection.sendPacket(equipmentPacket);
+
+        equipmentPacket = new PacketPlayOutEntityEquipment(
+                npcEntity.getId(),
+                EnumItemSlot.MAINHAND,
+                CraftItemStack.asNMSCopy(npcEntity.getBukkitEntity().getEquipment().getItemInMainHand())
+        );
+        playerConnection.sendPacket(equipmentPacket);
+
+        equipmentPacket = new PacketPlayOutEntityEquipment(
+                npcEntity.getId(),
+                EnumItemSlot.OFFHAND,
+                CraftItemStack.asNMSCopy(npcEntity.getBukkitEntity().getEquipment().getItemInOffHand())
+        );
+        playerConnection.sendPacket(equipmentPacket);
     }
 
     // <editor-fold desc="Teleportation methods">
@@ -168,6 +240,7 @@ public class ReplicatedPlayer implements Runnable {
         PlayerConnection playerConnection = ((CraftPlayer) target).getHandle().playerConnection;
         playerConnection.sendPacket(new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.ADD_PLAYER, npcEntity));
         playerConnection.sendPacket(new PacketPlayOutNamedEntitySpawn(npcEntity));
+        sendEquipmentTo(target);
     }
 
     public void dispawnFor(Player target) {
@@ -179,6 +252,7 @@ public class ReplicatedPlayer implements Runnable {
     public void destroy() {
         targets.stream().forEach(this::dispawnFor);
         npcEntity.die();
+        updateTask.cancel();
     }
 
     // </editor-fold>
