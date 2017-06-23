@@ -73,7 +73,7 @@ public class PlayerConnectionKubicket extends KubithonPacket {
      *
      * @param state The state of the packet.
      */
-    void setState(byte state) {
+    public void setState(byte state) {
         this.state = state;
     }
 }

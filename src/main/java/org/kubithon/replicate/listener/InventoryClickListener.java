@@ -18,7 +18,7 @@ public class InventoryClickListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST) // the last handler that should be called
     public void onInventoryClick(InventoryClickEvent event) {
         int slot = event.getSlot();
-        if (!isArmorSlot(slot))
+        if (!isArmorSlot(slot) && !isVisibleInventorySlot(slot))
             return;
 
         Player holder = (Player) event.getInventory().getHolder();
@@ -30,5 +30,9 @@ public class InventoryClickListener implements Listener {
 
     private boolean isArmorSlot(int slot) {
         return slot <= 8 && slot >= 5;
+    }
+
+    private boolean isVisibleInventorySlot(int slot) {
+        return slot <= 44 && slot >= 36;
     }
 }

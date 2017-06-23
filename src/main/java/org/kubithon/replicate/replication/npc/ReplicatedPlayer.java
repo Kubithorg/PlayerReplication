@@ -72,6 +72,8 @@ public class ReplicatedPlayer implements Runnable {
         sendPacketToAllTargets(newHeadLook);
     }
 
+    // <editor-fold desc="Player equipment and items">
+
     public void setItemInMainHand(org.bukkit.Material material) {
         setItemInSlot(material, EnumItemSlot.MAINHAND);
     }
@@ -178,46 +180,26 @@ public class ReplicatedPlayer implements Runnable {
         playerConnection.sendPacket(equipmentPacket);
     }
 
+    // </editor-fold>
+
     // <editor-fold desc="Teleportation methods">
 
     public void teleport(float x, float y, float z, boolean onGround) {
         npcEntity.setLocation(x, y, z, npcEntity.yaw, npcEntity.pitch);
         npcEntity.onGround = onGround;
 
-        long deltaX = (long) (x * 32 - npcEntity.locX * 32) * 128;
-        long deltaY = (long) (y * 32 - npcEntity.locY * 32) * 128;
-        long deltaZ = (long) (z * 32 - npcEntity.locZ * 32) * 128;
-
-        PacketPlayOutEntity.PacketPlayOutRelEntityMove motionPacket = new PacketPlayOutEntity.PacketPlayOutRelEntityMove(
-                npcEntity.getId(),
-                deltaX,
-                deltaY,
-                deltaZ,
-                onGround
-        );
-        sendPacketToAllTargets(motionPacket);
+        PacketPlayOutEntityTeleport newPosition = new PacketPlayOutEntityTeleport(npcEntity);
+        sendPacketToAllTargets(newPosition);
 
         Log.info("Updated the position of the NPC " + npcEntity.displayName);
     }
 
     public void teleport(float x, float y, float z, float pitch, float yaw, boolean onGround) {
-        long deltaX = (long) (x * 32 - npcEntity.locX * 32) * 128;
-        long deltaY = (long) (y * 32 - npcEntity.locY * 32) * 128;
-        long deltaZ = (long) (z * 32 - npcEntity.locZ * 32) * 128;
-
         npcEntity.setLocation(x, y, z, yaw, pitch);
         npcEntity.onGround = onGround;
 
-        PacketPlayOutEntity.PacketPlayOutRelEntityMoveLook motionPacket = new PacketPlayOutEntity.PacketPlayOutRelEntityMoveLook(
-                npcEntity.getId(),
-                deltaX,
-                deltaY,
-                deltaZ,
-                getByteForAngle(yaw),
-                getByteForAngle(pitch),
-                onGround
-        );
-        sendPacketToAllTargets(motionPacket);
+        PacketPlayOutEntityTeleport newPosition = new PacketPlayOutEntityTeleport(npcEntity);
+        sendPacketToAllTargets(newPosition);
 
         PacketPlayOutEntityHeadRotation newHeadLook = new PacketPlayOutEntityHeadRotation(
                 npcEntity,
@@ -244,22 +226,24 @@ public class ReplicatedPlayer implements Runnable {
     }
 
     public void dispawnFor(Player target) {
-        PacketPlayOutEntityDestroy deathPacket = new PacketPlayOutEntityDestroy(npcEntity.getId());
         PlayerConnection playerConnection = ((CraftPlayer) target).getHandle().playerConnection;
-        playerConnection.sendPacket(deathPacket);
+
+        playerConnection.sendPacket(new PacketPlayOutEntityDestroy(npcEntity.getId()));
+        playerConnection.sendPacket(new PacketPlayOutPlayerInfo(
+                PacketPlayOutPlayerInfo.EnumPlayerInfoAction.REMOVE_PLAYER,
+                npcEntity));
     }
 
     public void destroy() {
         targets.stream().forEach(this::dispawnFor);
         npcEntity.die();
         updateTask.cancel();
+        targets.clear();
+        targets = null;
+        Log.info("The player " + npcEntity.displayName + " is no more replicated.");
     }
 
     // </editor-fold>
-
-    public Location getLocation() {
-        return npcEntity.getBukkitEntity().getLocation();
-    }
 
     /**
      * Called every 5 ticks.
@@ -279,10 +263,7 @@ public class ReplicatedPlayer implements Runnable {
                 targets.remove(pls);
             }
         }
-        // Send at a regular interval the exact position to avoid movement offsets due to the relative movements
-        PacketPlayOutEntityTeleport newPosition = new PacketPlayOutEntityTeleport(npcEntity);
-        sendPacketToAllTargets(newPosition);
-
+        // Send at a regular interval the exact head rotation
         PacketPlayOutEntity.PacketPlayOutEntityLook newLook = new PacketPlayOutEntity.PacketPlayOutEntityLook(
                 npcEntity.getId(),
                 getByteForAngle(npcEntity.yaw),
