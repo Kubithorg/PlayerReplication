@@ -7,6 +7,8 @@ package org.kubithon.replicate.replication.protocol;
 public class PlayerLookKubicket extends KubithonPacket {
     private float pitch;
     private float yaw;
+    private byte pitchByte;
+    private byte yawByte;
 
     PlayerLookKubicket() {
         super(KubicketType.PLAYER_LOOK);
@@ -14,8 +16,8 @@ public class PlayerLookKubicket extends KubithonPacket {
 
     @Override
     protected void composePacket() {
-        writeFloat(pitch);
-        writeFloat(yaw);
+        writeByte(KubithonPacket.getByteFromAngle(pitch));
+        writeByte(KubithonPacket.getByteFromAngle(yaw));
     }
 
     public float getPitch() {
@@ -32,5 +34,21 @@ public class PlayerLookKubicket extends KubithonPacket {
 
     public void setYaw(float yaw) {
         this.yaw = yaw;
+    }
+
+    public byte getPitchByte() {
+        return pitchByte;
+    }
+
+    public void setPitchByte(byte pitchByte) {
+        this.pitchByte = pitchByte;
+    }
+
+    public byte getYawByte() {
+        return yawByte;
+    }
+
+    public void setYawByte(byte yawByte) {
+        this.yawByte = yawByte;
     }
 }

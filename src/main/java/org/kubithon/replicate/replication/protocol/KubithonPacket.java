@@ -150,15 +150,12 @@ public abstract class KubithonPacket {
     }
 
     private static PlayerLookKubicket deserializeLookKubicket(byte[] packetBytes) {
-        byte[] pitchBytes = Arrays.copyOfRange(packetBytes, 1, 5);
-        float pitch = KubithonPacket.byteArrayToFloat(pitchBytes);
-
-        byte[] yawBytes = Arrays.copyOfRange(packetBytes, 5, 9);
-        float yaw = KubithonPacket.byteArrayToFloat(yawBytes);
+        byte pitchByte = packetBytes[1];
+        byte yawByte = packetBytes[2];
 
         PlayerLookKubicket lookKubicket = new PlayerLookKubicket();
-        lookKubicket.setPitch(pitch);
-        lookKubicket.setYaw(yaw);
+        lookKubicket.setPitchByte(pitchByte);
+        lookKubicket.setYawByte(yawByte);
 
         return lookKubicket;
     }
@@ -191,18 +188,15 @@ public abstract class KubithonPacket {
         byte[] zBytes = Arrays.copyOfRange(packetBytes, 9, 13);
         float z = KubithonPacket.byteArrayToFloat(zBytes);
 
-        byte[] pitchBytes = Arrays.copyOfRange(packetBytes, 13, 17);
-        float pitch = KubithonPacket.byteArrayToFloat(pitchBytes);
-
-        byte[] yawBytes = Arrays.copyOfRange(packetBytes, 17, 21);
-        float yaw = KubithonPacket.byteArrayToFloat(yawBytes);
+        byte pitchByte = packetBytes[13];
+        byte yawByte = packetBytes[14];
 
         PlayerPositionLookKubicket positionLookKubicket = new PlayerPositionLookKubicket();
         positionLookKubicket.setxPos(x);
         positionLookKubicket.setyPos(y);
         positionLookKubicket.setzPos(z);
-        positionLookKubicket.setPitch(pitch);
-        positionLookKubicket.setYaw(yaw);
+        positionLookKubicket.setPitchByte(pitchByte);
+        positionLookKubicket.setYawByte(yawByte);
 
         return positionLookKubicket;
     }
@@ -347,6 +341,14 @@ public abstract class KubithonPacket {
      */
     public int getByteStringLength(String string) {
         return string.getBytes(StandardCharsets.UTF_8).length;
+    }
+
+    public static byte getByteFromAngle(float angle) {
+        return (byte) ((angle * 255) / 360);
+    }
+
+    public static float getAngleFromByte(byte val) {
+        return (float) ((val * 360) / 255);
     }
 
     // </editor-fold>

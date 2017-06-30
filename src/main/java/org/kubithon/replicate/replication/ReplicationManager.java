@@ -53,8 +53,8 @@ public class ReplicationManager {
         if (receivedKubicket instanceof PlayerLookKubicket) {
             PlayerLookKubicket lookKubicket = (PlayerLookKubicket) receivedKubicket;
             replicatedPlayers.get(playerName).updateLook(
-                    lookKubicket.getPitch(),
-                    lookKubicket.getYaw()
+                    lookKubicket.getPitchByte(),
+                    lookKubicket.getYawByte()
             );
         } else if (receivedKubicket instanceof PlayerPositionKubicket) {
             PlayerPositionKubicket positionKubicket = (PlayerPositionKubicket) receivedKubicket;
@@ -70,8 +70,8 @@ public class ReplicationManager {
                     positionLookKubicket.getxPos(),
                     positionLookKubicket.getyPos(),
                     positionLookKubicket.getzPos(),
-                    positionLookKubicket.getPitch(),
-                    positionLookKubicket.getYaw(),
+                    positionLookKubicket.getPitchByte(),
+                    positionLookKubicket.getYawByte(),
                     positionLookKubicket.isOnGround()
             );
         } else if (receivedKubicket instanceof PlayerConnectionKubicket) {

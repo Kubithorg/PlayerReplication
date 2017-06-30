@@ -94,8 +94,9 @@ public class ReplicatePlugin extends JavaPlugin {
             getLogger().info("Try to load the LuckPerms API...");
             try {
                 permissionApi = LuckPerms.getApi();
-                getLogger().info("Done!");
+                getLogger().info("Success!");
             } catch (Exception ex) {
+                getLogger().info("Error!");
                 getLogger().severe(ExceptionUtils.getFullStackTrace(ex));
             }
         }, 20);

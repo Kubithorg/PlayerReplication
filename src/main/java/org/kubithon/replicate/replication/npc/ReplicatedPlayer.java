@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 import org.kubithon.replicate.ReplicatePlugin;
+import org.kubithon.replicate.replication.protocol.KubithonPacket;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,27 +48,26 @@ public class ReplicatedPlayer implements Runnable {
         updateTask = Bukkit.getScheduler().runTaskTimerAsynchronously(ReplicatePlugin.get(), this, 5, 5); // Run this in 5 ticks
     }
 
-
     public void moveArm(EnumHand hand) {
         PacketPlayOutAnimation handPacket = new PacketPlayOutAnimation(npcEntity, hand.ordinal());
         sendPacketToAllTargets(handPacket);
     }
 
-    public void updateLook(float pitch, float yaw) {
-        npcEntity.pitch = pitch;
-        npcEntity.yaw = yaw;
+    public void updateLook(byte pitchByte, byte yawByte) {
+        npcEntity.pitch = KubithonPacket.getAngleFromByte(pitchByte);
+        npcEntity.yaw = KubithonPacket.getAngleFromByte(yawByte);
 
         PacketPlayOutEntity.PacketPlayOutEntityLook bodyLookPacket = new PacketPlayOutEntity.PacketPlayOutEntityLook(
                 npcEntity.getId(),
-                getByteForAngle(yaw),
-                getByteForAngle(pitch),
+                yawByte,
+                pitchByte,
                 npcEntity.onGround
         );
         sendPacketToAllTargets(bodyLookPacket);
 
         PacketPlayOutEntityHeadRotation newHeadLook = new PacketPlayOutEntityHeadRotation(
                 npcEntity,
-                getByteForAngle(npcEntity.yaw)
+                yawByte
         );
         sendPacketToAllTargets(newHeadLook);
     }
@@ -194,8 +194,8 @@ public class ReplicatedPlayer implements Runnable {
         Log.info("Updated the position of the NPC " + npcEntity.displayName);
     }
 
-    public void teleport(float x, float y, float z, float pitch, float yaw, boolean onGround) {
-        npcEntity.setLocation(x, y, z, yaw, pitch);
+    public void teleport(float x, float y, float z, byte pitchByte, byte yawByte, boolean onGround) {
+        npcEntity.setLocation(x, y, z, KubithonPacket.getAngleFromByte(yawByte), KubithonPacket.getAngleFromByte(pitchByte));
         npcEntity.onGround = onGround;
 
         PacketPlayOutEntityTeleport newPosition = new PacketPlayOutEntityTeleport(npcEntity);
@@ -203,7 +203,7 @@ public class ReplicatedPlayer implements Runnable {
 
         PacketPlayOutEntityHeadRotation newHeadLook = new PacketPlayOutEntityHeadRotation(
                 npcEntity,
-                getByteForAngle(npcEntity.yaw)
+                yawByte
         );
         sendPacketToAllTargets(newHeadLook);
 
@@ -218,14 +218,14 @@ public class ReplicatedPlayer implements Runnable {
 
     // <editor-fold desc="Spawning / dispawing / destroying">
 
-    public void spawnFor(Player target) {
+    private void spawnFor(Player target) {
         PlayerConnection playerConnection = ((CraftPlayer) target).getHandle().playerConnection;
         playerConnection.sendPacket(new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.ADD_PLAYER, npcEntity));
         playerConnection.sendPacket(new PacketPlayOutNamedEntitySpawn(npcEntity));
         sendEquipmentTo(target);
     }
 
-    public void dispawnFor(Player target) {
+    private void dispawnFor(Player target) {
         PlayerConnection playerConnection = ((CraftPlayer) target).getHandle().playerConnection;
 
         playerConnection.sendPacket(new PacketPlayOutEntityDestroy(npcEntity.getId()));
@@ -266,13 +266,10 @@ public class ReplicatedPlayer implements Runnable {
         // Send at a regular interval the exact head rotation
         PacketPlayOutEntity.PacketPlayOutEntityLook newLook = new PacketPlayOutEntity.PacketPlayOutEntityLook(
                 npcEntity.getId(),
-                getByteForAngle(npcEntity.yaw),
-                getByteForAngle(npcEntity.pitch),
+                KubithonPacket.getByteFromAngle(npcEntity.yaw),
+                KubithonPacket.getByteFromAngle(npcEntity.pitch),
                 npcEntity.onGround);
         sendPacketToAllTargets(newLook);
     }
 
-    private byte getByteForAngle(float angle) {
-        return (byte) ((angle * 255) / 360);
-    }
 }
