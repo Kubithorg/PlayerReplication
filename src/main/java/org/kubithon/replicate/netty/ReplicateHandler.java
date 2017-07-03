@@ -33,6 +33,12 @@ public class ReplicateHandler {
                 .addBefore("packet_handler", "replication-channel", new ReplicationChannelHandler(player));
     }
 
+    /**
+     * Creates a {@link PlayerConnectionKubicket} to send a message saying that the specified player has disconnected,
+     * and should no longer be replicated.
+     *
+     * @param player The player you no more want to be replicated.
+     */
     public static void stopHandling(Player player) {
         PlayerConnectionKubicket connectionKubicket = new PlayerConnectionKubicket();
         connectionKubicket.setPlayerName(player.getName());

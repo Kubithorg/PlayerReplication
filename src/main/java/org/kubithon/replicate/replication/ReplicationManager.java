@@ -30,7 +30,7 @@ public class ReplicationManager {
     }
 
     /**
-     * Adds a new player to the list of the NPCs to show.
+     * Adds a new player to the list of the NPCs to show, and thus starts replicating him.
      *
      * @param uuid The UUID of the player to replicate.
      * @param name The nickname of the player to replicate.
@@ -40,13 +40,27 @@ public class ReplicationManager {
         replicatedPlayers.put(name, replicatedPlayer);
     }
 
+    /**
+     * Stops the replication of the player identified by the specified name, and then removes him from the map of the
+     * replicated players.
+     *
+     * @param name The pseudo of the player you want to stop the replication.
+     */
     private void unregisterReplicatedPlayer(String name) {
         if (replicatedPlayers.containsKey(name)) {
             ReplicatedPlayer player = replicatedPlayers.get(name);
             player.destroy();
+            replicatedPlayers.remove(name);
         }
     }
 
+    /**
+     * Manages the specified kubicket. The actions that this kubicket carries will be applied to the player with the
+     * specified name.
+     *
+     * @param playerName       The name of the player concerned by this kubicket.
+     * @param receivedKubicket The kubicket received through Redis.
+     */
     public void handleKubicket(String playerName, KubithonPacket receivedKubicket) {
         Log.info("Handling a kubicket. Player: " + playerName + " | PacketType: " + receivedKubicket.getType());
 
@@ -91,6 +105,15 @@ public class ReplicationManager {
         }
     }
 
+    /**
+     * The function managing the reception of a kubicket holding a sponsor connection data. If the packet is saying
+     * that the player has just connected to the server (state = 0), then it registers this player and starts replicating
+     * it, using the registerReplicatedPlayer(uuid, name) method. <br/>
+     * If the packet is saying that the player has disconnected, it unregisters him, using the unregisterReplicatedPlayer(
+     * name) method, thus stopping its replication.
+     *
+     * @param receivedPacket The received connection kubicket.
+     */
     private void handleConnectionKubicket(PlayerConnectionKubicket receivedPacket) {
         if (receivedPacket.getState() == 0) {
             registerReplicatedPlayer(
@@ -102,6 +125,12 @@ public class ReplicationManager {
         }
     }
 
+    /**
+     * Publish the stuff of the specified player in the Redis network, using the usual conventions on the topic
+     * and the pattern.
+     *
+     * @param player The player you want to send the stuff.
+     */
     public static void sendPlayerStuff(Player player) {
         EntityEquipment playerEquipment = player.getEquipment();
 

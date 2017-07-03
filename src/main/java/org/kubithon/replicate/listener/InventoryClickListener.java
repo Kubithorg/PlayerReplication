@@ -10,19 +10,27 @@ import org.kubithon.replicate.ReplicatePlugin;
 import org.kubithon.replicate.replication.ReplicationManager;
 
 /**
+ * The class responsible of listening for clicks in inventories, in order to replicate the stuff of the sponsors.
+ *
  * @author troopy28
  * @since 1.0.0
  */
 public class InventoryClickListener implements Listener {
 
-    @EventHandler(priority = EventPriority.HIGHEST) // the last handler that should be called
+    /**
+     * Called whenever a player clicks a slot in his inventory. When it occurs, if the player is a sponsor, sends the
+     * <b>visible</b> stuff of this player through the Redis network, one 5 ticks later.
+     *
+     * @param event The click event.
+     */
+    @EventHandler(priority = EventPriority.HIGHEST) // The last handler that should be called
     public void onInventoryClick(InventoryClickEvent event) {
         int slot = event.getSlot();
         if (!isArmorSlot(slot) && !isVisibleInventorySlot(slot))
             return;
 
         Player holder = (Player) event.getInventory().getHolder();
-        if (!(holder.hasPermission("kubithon.replicate") || holder.isOp()) /*isOp() -> for debugging */)
+        if (!ReplicatePlugin.get().shouldBeReplicated(holder))
             return;
 
         Bukkit.getScheduler().runTaskLater(ReplicatePlugin.get(), () -> ReplicationManager.sendPlayerStuff(holder), 5);

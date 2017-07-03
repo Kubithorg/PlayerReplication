@@ -5,6 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.libs.jline.internal.Log;
 import org.kubithon.replicate.ReplicatePlugin;
 import org.kubithon.replicate.broking.MessageListener;
+import org.kubithon.replicate.broking.PubSubManager;
 import org.kubithon.replicate.broking.impl.AbstractPubSubManager;
 import org.kubithon.replicate.broking.impl.redis.RedisCredentials;
 import redis.clients.jedis.Jedis;
@@ -16,7 +17,7 @@ import redis.clients.jedis.JedisPubSub;
  * @author troopy28
  * @since 1.0.0
  */
-public class JedisPubSubManager extends AbstractPubSubManager<RedisCredentials> {
+public class JedisPubSubManager extends AbstractPubSubManager<RedisCredentials> implements PubSubManager<RedisCredentials> {
 
     private Jedis publisherJedis;
     private Jedis subscriberJedis;

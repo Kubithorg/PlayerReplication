@@ -1,6 +1,9 @@
 package org.kubithon.replicate.replication.protocol;
 
 /**
+ * The packet carrying a sponsor's stuff. All the IDs are the Bukkit IDs, not the NMS ones (but maybe they're the same,
+ * dunno).
+ *
  * @author troopy28
  * @since 1.0.0
  */

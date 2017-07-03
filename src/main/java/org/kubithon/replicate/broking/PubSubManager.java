@@ -1,14 +1,12 @@
 package org.kubithon.replicate.broking;
 
-import org.kubithon.replicate.broking.impl.redis.RedisPubSubManager;
-
 /**
  * Manages a pub sub system.
- * Default implementation: {@link RedisPubSubManager}.
+ * Default implementation: {@link org.kubithon.replicate.broking.jedis.JedisPubSubManager}.
  *
  * @param <T> Credentials specific to the pub sub manager.
  * @author Oscar Davis
- * @see RedisPubSubManager
+ * @see org.kubithon.replicate.broking.jedis.JedisPubSubManager
  * @since 1.0.0
  */
 public interface PubSubManager<T extends Credentials>

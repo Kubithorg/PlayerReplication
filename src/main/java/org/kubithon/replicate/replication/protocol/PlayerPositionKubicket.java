@@ -1,6 +1,9 @@
 package org.kubithon.replicate.replication.protocol;
 
 /**
+ * The packet containing the information relative to the position of a sponsor, that is to say the x, y, z and onGround
+ * attributes.
+ *
  * @author troopy28
  * @since 1.0.0
  */

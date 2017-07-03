@@ -1,6 +1,8 @@
 package org.kubithon.replicate.replication.protocol;
 
 /**
+ * A simple enumeration of the different kubickets there exist.
+ *
  * @author troopy28
  * @since 1.0.0
  */
@@ -15,16 +17,32 @@ public enum KubicketType {
 
     UNDEFINED((byte) 0xAA);
 
+    /**
+     * The ID of the packet.
+     */
     private byte id;
 
+    /**
+     * Private constructor of this enum.
+     *
+     * @param id The ID of the kubicket.
+     */
     KubicketType(byte id) {
         this.id = id;
     }
 
+    /**
+     * @return Returns the ID of this packet, that is to say the byte to write in the byte array representation of a
+     * kubicket.
+     */
     public byte getId() {
         return id;
     }
 
+    /**
+     * @param id The ID of the kubicket you want to get.
+     * @return Returns the kubicket corresponding to the specified ID.
+     */
     public static KubicketType fromId(byte id) { //NOSONAR: more than 10 checks to do.........
         switch (id) {
             case 0x00:

@@ -1,6 +1,8 @@
 package org.kubithon.replicate.replication.protocol;
 
 /**
+ * A combination of the {@link PlayerLookKubicket} and the {@link PlayerPositionKubicket}.
+ *
  * @author troopy28
  * @since 1.0.0
  */

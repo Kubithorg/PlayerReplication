@@ -12,19 +12,39 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
+ * The base class of all the kubithon packets used in this plugin. It contains the functions for converting the data
+ * types into their byte array representation, the type of this Kubicket (shorthand for kubithon-packet), and a way
+ * to build their byte array representation very easily.
+ *
  * @author troopy28
  * @since 1.0.0
  */
 public abstract class KubithonPacket {
 
+    /**
+     * The type of this kubicket.
+     */
     private KubicketType type;
+    /**
+     * The list of the bytes of this packet, that will then be packet in an array after the serialization job.
+     */
     private List<Byte> packetBytesList;
 
+    /**
+     * Package-local constructor. Creates the {@link ArrayList} of the bytes of this packet, that will be used to
+     * serialize the packet.
+     *
+     * @param kubicketType The type of this kubicket.
+     */
     KubithonPacket(KubicketType kubicketType) {
         type = kubicketType;
         packetBytesList = new ArrayList<>();
     }
 
+    /**
+     * @return Returns the type of this kubicket.
+     * @see KubicketType
+     */
     public KubicketType getType() {
         return type;
     }
@@ -94,8 +114,17 @@ public abstract class KubithonPacket {
         return finalKubicket;
     }
 
+    /**
+     * All packets have this method, which enables them to do their specific serialization job.
+     */
     protected abstract void composePacket();
 
+    /**
+     * Writes the ID of the packet in a single byte, then call the serialization method specific to this packet, and
+     * pack all these data into a byte array that is returned.
+     *
+     * @return The byte array corresponding to this packet.
+     */
     public byte[] serialize() {
         writeByte(type.getId());
         composePacket();
@@ -104,6 +133,14 @@ public abstract class KubithonPacket {
         );
     }
 
+    /**
+     * Deserializes the specified byte array in order to generate an object extending from {@link KubithonPacket}. If the
+     * packet isn't recognized, then this function returns null.
+     *
+     * @param packetBytes The byte array of the kubicket.
+     * @return Returns an object extending from {@link KubithonPacket} embedding the data that was in the specified byte
+     * array.
+     */
     public static KubithonPacket deserialize(byte[] packetBytes) { //NOSONAR : more than 10 packets so... shut up Sonar ;)
         byte packetId = packetBytes[0];
         switch (KubicketType.fromId(packetId)) {
@@ -123,6 +160,10 @@ public abstract class KubithonPacket {
                 return null;
         }
     }
+
+    // <editor-fold desc="Functions for deserializing the specified byte array, according to the ID.">
+
+    // The code is self-documenting in the following function: only byte array conversions etc.
 
     private static PlayerHandAnimationKubicket deserializeHandAnimKubicket(byte[] packetBytes) {
         byte hand = packetBytes[1];
@@ -230,6 +271,8 @@ public abstract class KubithonPacket {
 
         return equipmentKubicket;
     }
+
+    // </editor-fold>
 
     // <editor-fold desc="Shorthand for writing bytes in the packet">
 
