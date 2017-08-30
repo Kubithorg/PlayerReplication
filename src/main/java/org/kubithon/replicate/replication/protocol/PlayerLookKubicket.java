@@ -56,4 +56,5 @@ public class PlayerLookKubicket extends KubithonPacket {
     public void setYawByte(byte yawByte) {
         this.yawByte = yawByte;
     }
+
 }

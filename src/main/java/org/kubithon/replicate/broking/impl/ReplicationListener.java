@@ -17,6 +17,7 @@ import java.util.Base64;
 public class ReplicationListener implements MessageListener {
 
     private ReplicationManager replicationManager;
+    private int patternLength = BrokingConstant.REPLICATION_PATTERN.length();
 
     public ReplicationListener() {
         this.replicationManager = ReplicatePlugin.get().getReplicationManager();
@@ -24,8 +25,6 @@ public class ReplicationListener implements MessageListener {
 
     @Override
     public void patternReceive(String pattern, String topic, String message) {
-        int patternLength = BrokingConstant.REPLICATION_PATTERN.length();
-
         int senderUid = Integer.parseInt(topic.substring(patternLength, patternLength + 1));
 
         String playerName = topic.substring(patternLength + 1);

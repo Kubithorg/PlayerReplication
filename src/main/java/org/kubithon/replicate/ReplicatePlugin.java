@@ -179,7 +179,6 @@ public class ReplicatePlugin extends JavaPlugin {
         return replicationManager;
     }
 
-
     /**
      * Registers all the given listeners.
      *
@@ -234,4 +233,5 @@ public class ReplicatePlugin extends JavaPlugin {
             return permissionsMap.get(permissionEnabledKey);
         }
     }
+
 }
