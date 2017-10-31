@@ -8,8 +8,6 @@ import fr.troopy28.replication.broking.impl.redis.RedisCredentials;
 import fr.troopy28.replication.utils.ForgeScheduler;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisPubSub;
 
 /**
@@ -22,17 +20,14 @@ public class JedisPubSubManager extends AbstractPubSubManager<RedisCredentials> 
     private Jedis subscriberJedis;
     private JedisPubSub pubSub;
 
-
     public JedisPubSubManager() {
         super();
     }
 
     @Override
     public void connect(RedisCredentials credentials) {
-        JedisPool pool = new JedisPool(new JedisPoolConfig(), credentials.host(),
-                credentials.port(), 2000);
-        this.publisherJedis = pool.getResource();
-        this.subscriberJedis = pool.getResource();
+        this.publisherJedis = new Jedis(credentials.host(), credentials.port(), 2000);
+        this.subscriberJedis  = new Jedis(credentials.host(), credentials.port(), 2000);
         String redisPassword = credentials.password();
         if (redisPassword != null) {
             try {
@@ -47,12 +42,10 @@ public class JedisPubSubManager extends AbstractPubSubManager<RedisCredentials> 
             }
         }
         this.pubSub = createPubSub();
-        pool.close();
     }
 
     @Override
     public void publish(String topic, String message) {
-        ReplicationMod.get().getLogger().info("Publishing in topic '" + topic + "' the message '" + message + "'.");
         publisherJedis.publish(topic, message);
     }
 

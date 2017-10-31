@@ -2,21 +2,26 @@ package fr.troopy28.replication;
 
 import com.google.gson.Gson;
 import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.properties.Property;
 import fr.troopy28.replication.broking.BrokingConstant;
 import fr.troopy28.replication.broking.PubSubManager;
 import fr.troopy28.replication.broking.impl.ReplicationListener;
 import fr.troopy28.replication.broking.impl.redis.RedisCredentials;
 import fr.troopy28.replication.broking.jedis.JedisPubSubManager;
+import fr.troopy28.replication.netty.ReplicateHandler;
 import fr.troopy28.replication.replication.ReplicationManager;
 import me.lucko.luckperms.LuckPerms;
+import me.lucko.luckperms.api.Contexts;
 import me.lucko.luckperms.api.LuckPermsApi;
+import me.lucko.luckperms.api.User;
+import me.lucko.luckperms.api.caching.PermissionData;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.server.MinecraftServer;
+import net.minecraft.network.play.server.SPacketEntityTeleport;
+import net.minecraft.network.play.server.SPacketPlayerListItem;
+import net.minecraft.network.play.server.SPacketSpawnPlayer;
 import net.minecraft.server.management.PlayerInteractionManager;
-import net.minecraft.util.EnumHand;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
-import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -30,9 +35,9 @@ import org.apache.logging.log4j.Logger;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
-
-import static java.lang.ClassLoader.getSystemClassLoader;
 
 @Mod(modid = ReplicationMod.MODID, version = ReplicationMod.VERSION, serverSideOnly = true, acceptableRemoteVersions = "*")
 // Server side only mod, accept both forge and no-forge versions
@@ -58,17 +63,8 @@ public class ReplicationMod {
      */
     @EventHandler
     public void init(FMLInitializationEvent event) {
-        logger = LogManager.getLogger(getClass());
+        logger = LogManager.getLogger("PlayerReplication");
         instance = this;
-
-        // First, load the Pool2 class
-        try {
-            getSystemClassLoader().loadClass("org.apache.commons.pool2.impl.GenericObjectPoolConfig");
-            Class.forName("org.apache.commons.pool2.impl.GenericObjectPoolConfig");
-        } catch (ClassNotFoundException e) {
-            logger.error("Class not found", e);
-        }
-
         if (!checkConfigFile())
             return;
 
@@ -113,12 +109,13 @@ public class ReplicationMod {
     }
 
     /**
-     * Here is initialized everything that might depend on an other mod or Sponge plugin (LuckPerms).
+     * Here is initialized everything that might depend on an other mod or Sponge plugin (LuckPerms). Registers the
+     * listeners.
      *
      * @param event Start event.
      */
     @EventHandler
-    public void started(FMLServerStartedEvent event) {
+    public void onStart(FMLServerStartedEvent event) {
         logger.info("Trying to load the LuckPerms API...");
         try {
             permissionApi = LuckPerms.getApi();
@@ -127,27 +124,81 @@ public class ReplicationMod {
             logger.info("Error!");
             logger.trace(ExceptionUtils.getStackTrace(ex));
         }
+        logger.info("Registering the listeners");
+        MinecraftForge.EVENT_BUS.register(this);
+        logger.info("Listeners registered in the event bus.");
     }
 
     // Player logs in
     @SubscribeEvent
-    public void playerLogIn(PlayerEvent.PlayerLoggedInEvent event) {
+    public void onPlayerLogIn(PlayerEvent.PlayerLoggedInEvent event) {
         logger.info(event.player.getName() + " joined us!");
 
-        EntityPlayerMP player = (EntityPlayerMP) event.player;
-        World world = player.getEntityWorld(); // player world
-        WorldServer worldServer = FMLCommonHandler.instance().getMinecraftServerInstance().getWorld(player.dimension);
-
-        GameProfile gameProfile = new GameProfile(UUID.fromString("78ad1b33-72b0-45dc-837a-778feb0ca25b"), "troopy28");
-        MinecraftServer server = world.getMinecraftServer();
-        if (server != null) {
-            EntityPlayerMP fakePlayer = new EntityPlayerMP(server, worldServer, gameProfile, new PlayerInteractionManager(worldServer));
-            fakePlayer.setPosition(100, 200, 100);
-            fakePlayer.swingArm(EnumHand.MAIN_HAND);
-            logger.info("Player spawned.");
-        } else {
-            logger.info("CANT CREATE THE PLAYER!!!!!!!! NO SERVER!!!!");
+        final EntityPlayerMP player = (EntityPlayerMP) event.player;
+        //test(player);
+        if (shouldBeReplicated(player)) {
+            logger.info(player.getName() + " has the permission to be replicated.");
+            ReplicateHandler.handle(player);
         }
+    }
+
+    private void test(EntityPlayerMP player) {
+        GameProfile gameProfile = new GameProfile(UUID.fromString("6bd25c70-f838-494b-87fe-2311e95d16ef"), "goubidity");
+
+        Property prop = player.getGameProfile().getProperties().get("textures").iterator().next();
+        gameProfile.getProperties().put("textures", prop);
+
+        EntityPlayerMP fakePlayer = new EntityPlayerMP(
+                player.getServerWorld().getMinecraftServer(),
+                player.getServerWorld(),
+                gameProfile,
+                new PlayerInteractionManager(player.getServerWorld())
+        );
+
+        fakePlayer.setPosition(player.posX, player.posY, player.posZ);
+        player.getGameProfile().getProperties().get("textures").forEach(t -> logger.info(t.getName() + " = " + t.getValue()  + " ; " + t.getSignature()));
+
+        SPacketPlayerListItem info = new SPacketPlayerListItem(SPacketPlayerListItem.Action.ADD_PLAYER, fakePlayer);
+        player.connection.sendPacket(info);
+        SPacketSpawnPlayer spawn = new SPacketSpawnPlayer(fakePlayer);
+        player.connection.sendPacket(spawn);
+        SPacketEntityTeleport pos = new SPacketEntityTeleport(fakePlayer);
+        player.connection.sendPacket(pos);
+    }
+
+    @SubscribeEvent
+    public void onPlayerLogOut(PlayerEvent.PlayerLoggedOutEvent event) {
+        if (shouldBeReplicated(event.player)) {
+            ReplicateHandler.stopHandling((EntityPlayerMP) event.player);
+        }
+    }
+
+
+    /**
+     * @return Returns that the specified player should be replicated.
+     */
+    public boolean shouldBeReplicated(EntityPlayer player) {
+        /*if (config.isDebug()) // To debug, enable the replication using sponge permissions
+            return player.hasPermission("kubithon.replicate");
+        else {*/
+        Optional<User> user = permissionApi.getUserSafe(player.getUniqueID());
+        if (!user.isPresent()) {
+            permissionApi.getStorage().loadUser(player.getUniqueID());
+            user = permissionApi.getUserSafe(player.getUniqueID());
+        }
+        // Here the user's value cannot be null
+        Contexts contexts = permissionApi.getContextForUser(user.get()).orElse(null);
+        if (contexts == null)
+            return false;
+
+        PermissionData permissionData = user.get().getCachedData().getPermissionData(contexts);
+        Map<String, Boolean> permissionsMap = permissionData.getImmutableBacking();
+        try {
+            return permissionsMap.get(config.getReplicationPermissionName());
+        } catch (Exception ex) {
+            return false;
+        }
+        // }
     }
 
     private void connectToRedis(RedisCredentials credentials) {
@@ -160,7 +211,6 @@ public class ReplicationMod {
         }
         if (connectionSuccess)
             logger.info("Successfully connected to Redis!");
-
     }
 
     public Logger getLogger() {

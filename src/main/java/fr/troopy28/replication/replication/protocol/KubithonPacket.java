@@ -2,8 +2,8 @@ package fr.troopy28.replication.replication.protocol;
 
 
 import net.minecraft.network.Packet;
-import net.minecraft.network.play.server.SPacketAnimation;
-import net.minecraft.network.play.server.SPacketEntity;
+import net.minecraft.network.play.client.CPacketAnimation;
+import net.minecraft.network.play.client.CPacketPlayer;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.nio.ByteBuffer;
@@ -61,41 +61,41 @@ public abstract class KubithonPacket {
         KubithonPacket finalKubicket = null;
 
         // Position only
-        if (receivedPacket instanceof SPacketEntity.S15PacketEntityRelMove) {
-            SPacketEntity.S15PacketEntityRelMove posPacket = (SPacketEntity.S15PacketEntityRelMove) receivedPacket;
+        if (receivedPacket instanceof CPacketPlayer.Position) {
+            CPacketPlayer.Position posPacket = (CPacketPlayer.Position) receivedPacket;
             PlayerPositionKubicket kubicket = new PlayerPositionKubicket();
 
-            kubicket.setxPos((float) posPacket.getZ());
-            kubicket.setyPos((float) posPacket.getY());
-            kubicket.setzPos((float) posPacket.getZ());
-            kubicket.setOnGround(posPacket.getOnGround());
+            kubicket.setxPos((float) posPacket.getX(0));
+            kubicket.setyPos((float) posPacket.getY(0));
+            kubicket.setzPos((float) posPacket.getZ(0));
+            kubicket.setOnGround(posPacket.isOnGround());
             finalKubicket = kubicket;
         }
         // Position and look
-        else if (receivedPacket instanceof SPacketEntity.S17PacketEntityLookMove) {
-            SPacketEntity.S17PacketEntityLookMove posLookPacket = (SPacketEntity.S17PacketEntityLookMove) receivedPacket;
+        else if (receivedPacket instanceof CPacketPlayer.PositionRotation) {
+            CPacketPlayer.PositionRotation posLookPacket = (CPacketPlayer.PositionRotation) receivedPacket;
             PlayerPositionLookKubicket kubicket = new PlayerPositionLookKubicket();
 
-            kubicket.setxPos((float) posLookPacket.getX());
-            kubicket.setyPos((float) posLookPacket.getY());
-            kubicket.setzPos((float) posLookPacket.getZ());
-            kubicket.setYawByte(posLookPacket.getYaw());
-            kubicket.setPitchByte(posLookPacket.getPitch());
-            kubicket.setOnGround(posLookPacket.getOnGround());
+            kubicket.setxPos((float) posLookPacket.getX(0));
+            kubicket.setyPos((float) posLookPacket.getY(0));
+            kubicket.setzPos((float) posLookPacket.getZ(0));
+            kubicket.setYaw(posLookPacket.getYaw(0));
+            kubicket.setPitch(posLookPacket.getPitch(0));
+            kubicket.setOnGround(posLookPacket.isOnGround());
             finalKubicket = kubicket;
         }
         // Look only
-        else if (receivedPacket instanceof SPacketEntity.S16PacketEntityLook) {
-            SPacketEntity.S16PacketEntityLook lookPacket = (SPacketEntity.S16PacketEntityLook) receivedPacket;
+        else if (receivedPacket instanceof CPacketPlayer.Rotation) {
+            CPacketPlayer.Rotation lookPacket = (CPacketPlayer.Rotation) receivedPacket;
             PlayerLookKubicket kubicket = new PlayerLookKubicket();
 
-            kubicket.setYawByte(lookPacket.getYaw());
-            kubicket.setPitchByte(lookPacket.getPitch());
+            kubicket.setYaw(lookPacket.getYaw(0));
+            kubicket.setPitch(lookPacket.getPitch(0));
             finalKubicket = kubicket;
-        } else if (receivedPacket instanceof SPacketAnimation) {
-            SPacketAnimation handPacket = (SPacketAnimation) receivedPacket;
+        } else if (receivedPacket instanceof CPacketAnimation) {
+            CPacketAnimation handPacket = (CPacketAnimation) receivedPacket;
             PlayerHandAnimationKubicket kubicket = new PlayerHandAnimationKubicket();
-            kubicket.setHand((byte)handPacket.getAnimationType());
+            kubicket.setHand((byte) handPacket.getHand().ordinal());
             finalKubicket = kubicket;
         }
         return finalKubicket;
@@ -169,11 +169,33 @@ public abstract class KubithonPacket {
         byte[] pseudoBytes = Arrays.copyOfRange(packetBytes, 39, 39 + pseudoLength);
         String pseudo = new String(pseudoBytes, StandardCharsets.UTF_8);
 
+        int idx = 39 + pseudoLength;
+
         PlayerConnectionKubicket connectionKubicket = new PlayerConnectionKubicket();
         connectionKubicket.setPlayerUuid(uuid);
         connectionKubicket.setPlayerName(pseudo);
         connectionKubicket.setState(state);
 
+        if(state == 1)
+        {
+            // The skin
+            byte[] skinLengthBytes = Arrays.copyOfRange(packetBytes, idx, idx + 2);
+            idx += 2;
+            short skinLength = byteArrayToShort(skinLengthBytes);
+            byte[] skinBytes = Arrays.copyOfRange(packetBytes, idx, idx + skinLength);
+            String skin = new String(skinBytes, StandardCharsets.UTF_8);
+            idx += skinLength;
+
+            // The signature
+            byte[] signatureLengthBytes = Arrays.copyOfRange(packetBytes, idx, idx + 2);
+            idx += 2;
+            short signatureLength = byteArrayToShort(signatureLengthBytes);
+            byte[] signatureBytes = Arrays.copyOfRange(packetBytes, idx, idx + signatureLength);
+            String signature = new String(signatureBytes, StandardCharsets.UTF_8);
+            //idx += signatureLength;
+            connectionKubicket.setPlayerSkin(skin);
+            connectionKubicket.setPlayerSkinSignature(signature);
+        }
         return connectionKubicket;
     }
 
@@ -223,8 +245,8 @@ public abstract class KubithonPacket {
         positionLookKubicket.setxPos(x);
         positionLookKubicket.setyPos(y);
         positionLookKubicket.setzPos(z);
-        positionLookKubicket.setPitchByte(pitchByte);
-        positionLookKubicket.setYawByte(yawByte);
+        positionLookKubicket.setPitch(getAngleFromByte(pitchByte));
+        positionLookKubicket.setYaw(getAngleFromByte(yawByte));
 
         return positionLookKubicket;
     }

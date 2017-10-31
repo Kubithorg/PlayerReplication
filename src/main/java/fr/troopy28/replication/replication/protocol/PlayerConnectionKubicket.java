@@ -13,6 +13,8 @@ public class PlayerConnectionKubicket extends KubithonPacket {
     private byte state; // 0 = connection; 1 = disconnection
     private String playerName;
     private String playerUuid;
+    private String playerSkin;
+    private String playerSkinSignature;
 
     public PlayerConnectionKubicket() {
         super(KubicketType.PLAYER_CONNECTION);
@@ -24,6 +26,45 @@ public class PlayerConnectionKubicket extends KubithonPacket {
         writeString(playerUuid);
         writeByte((byte) getByteStringLength(playerName));
         writeString(playerName);
+        if (state == 1)
+            return;
+        // Write this only for the connection
+        writeShort((short) getByteStringLength(playerSkin));
+        writeString(playerSkin);
+        writeShort((short) getByteStringLength(playerSkinSignature));
+        writeString(playerSkinSignature);
+    }
+
+    /**
+     * @return Returns the base64 string storing the skin of the player.
+     */
+    public String getPlayerSkin() {
+        return playerSkin;
+    }
+
+    /**
+     * Set the base64 string storing the skin of the player.
+     *
+     * @param playerSkin The base64 string storing the skin of the player.
+     */
+    public void setPlayerSkin(String playerSkin) {
+        this.playerSkin = playerSkin;
+    }
+
+    /**
+     * @return Returns the signature of the skin property.
+     */
+    public String getPlayerSkinSignature() {
+        return playerSkinSignature;
+    }
+
+    /**
+     * Set the signature of the skin property.
+     *
+     * @param playerSkinSignature Signature of the skin property.
+     */
+    public void setPlayerSkinSignature(String playerSkinSignature) {
+        this.playerSkinSignature = playerSkinSignature;
     }
 
     /**

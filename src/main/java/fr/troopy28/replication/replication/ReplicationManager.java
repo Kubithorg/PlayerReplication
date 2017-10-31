@@ -1,5 +1,7 @@
 package fr.troopy28.replication.replication;
 
+import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.properties.Property;
 import fr.troopy28.replication.ReplicationMod;
 import fr.troopy28.replication.broking.BrokingConstant;
 import fr.troopy28.replication.replication.npc.ReplicatedPlayer;
@@ -33,13 +35,12 @@ public class ReplicationManager {
     /**
      * Adds a new player to the list of the NPCs to show, and thus starts replicating him.
      *
-     * @param uuid The UUID of the player to replicate.
-     * @param name The nickname of the player to replicate.
+     * @param profile The Mojang profile of the player to replicate.
      */
-    private void registerReplicatedPlayer(UUID uuid, String name) {
+    private void registerReplicatedPlayer(GameProfile profile) {
         WorldServer worldServer = FMLCommonHandler.instance().getMinecraftServerInstance().getWorld(0);
-        ReplicatedPlayer replicatedPlayer = new ReplicatedPlayer(worldServer, uuid, name);
-        replicatedPlayers.put(name, replicatedPlayer);
+        ReplicatedPlayer replicatedPlayer = new ReplicatedPlayer(worldServer, profile);
+        replicatedPlayers.put(profile.getName(), replicatedPlayer);
     }
 
     /**
@@ -64,8 +65,7 @@ public class ReplicationManager {
      * @param receivedKubicket The kubicket received through Redis.
      */
     public void handleKubicket(String playerName, KubithonPacket receivedKubicket) {
-        ReplicationMod.get().getLogger().info("Handling a kubicket. Player: " + playerName + " | PacketType: " + receivedKubicket.getType());
-
+        //ReplicationMod.get().getLogger().info("Handling a kubicket. Player: " + playerName + " | PacketType: " + receivedKubicket.getType());
 
         if (receivedKubicket instanceof PlayerLookKubicket) {
             PlayerLookKubicket lookKubicket = (PlayerLookKubicket) receivedKubicket;
@@ -122,10 +122,17 @@ public class ReplicationManager {
      */
     private void handleConnectionKubicket(PlayerConnectionKubicket receivedPacket) {
         if (receivedPacket.getState() == 0) {
-            registerReplicatedPlayer(
+
+            GameProfile profile = new GameProfile(
                     UUID.fromString(receivedPacket.getPlayerUuid()),
                     receivedPacket.getPlayerName()
             );
+            profile.getProperties().put("textures", new Property(
+                    "textures",
+                    receivedPacket.getPlayerSkin(),
+                    receivedPacket.getPlayerSkinSignature())
+            );
+            registerReplicatedPlayer(profile);
         } else if (receivedPacket.getState() == 1) {
             unregisterReplicatedPlayer(receivedPacket.getPlayerName());
         }
@@ -145,12 +152,12 @@ public class ReplicationManager {
         net.minecraft.item.ItemStack mainHand = entityPlayer.getItemStackFromSlot(EntityEquipmentSlot.MAINHAND);
         net.minecraft.item.ItemStack offHand = entityPlayer.getItemStackFromSlot(EntityEquipmentSlot.OFFHAND);
 
-        final int helmetId = helmet != null ? Item.getIdFromItem(helmet.getItem()) : -1;
-        final int chestplateId = chestplate != null ? Item.getIdFromItem(chestplate.getItem()) : -1;
+        final int helmetId = helmet != null ? Item.getIdFromItem(helmet.getItem()) : 0;
+        final int chestplateId = chestplate != null ? Item.getIdFromItem(chestplate.getItem()) : 0;
         final int leggingsId = leggings != null ? Item.getIdFromItem(leggings.getItem()) : -1;
-        final int bootsId = boots != null ? Item.getIdFromItem(boots.getItem()) : -1;
-        final int mainHandId = mainHand != null ? Item.getIdFromItem(mainHand.getItem()) : -1;
-        final int offHandId = offHand != null ? Item.getIdFromItem(offHand.getItem()) : -1;
+        final int bootsId = boots != null ? Item.getIdFromItem(boots.getItem()) : 0;
+        final int mainHandId = mainHand != null ? Item.getIdFromItem(mainHand.getItem()) : 0;
+        final int offHandId = offHand != null ? Item.getIdFromItem(offHand.getItem()) : 0;
 
         PlayerEquipmentKubicket equipmentKubicket = new PlayerEquipmentKubicket();
 

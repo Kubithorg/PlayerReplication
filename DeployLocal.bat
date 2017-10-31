@@ -1,0 +1,2 @@
+COPY "D:\Kubithon\Dev\ForgeReplication\build\libs\forge-replication-1.0.jar" "D:\Kubithon\Architecture\Sponge1\mods\forge-replication-1.0.jar"
+COPY "D:\Kubithon\Dev\ForgeReplication\build\libs\forge-replication-1.0.jar" "D:\Kubithon\Architecture\Sponge2\mods\forge-replication-1.0.jar"

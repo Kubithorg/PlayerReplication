@@ -17,10 +17,12 @@ import java.util.Base64;
 public class ReplicationListener implements MessageListener {
 
     private ReplicationManager replicationManager;
+    private ReplicationMod replicationMod;
     private int patternLength = BrokingConstant.REPLICATION_PATTERN.length();
 
     public ReplicationListener() {
-        this.replicationManager = ReplicationMod.get().getReplicationManager();
+        this.replicationMod = ReplicationMod.get();
+        this.replicationManager = replicationMod.getReplicationManager();
     }
 
     @Override
@@ -32,8 +34,12 @@ public class ReplicationListener implements MessageListener {
             byte[] bytes = Base64.getDecoder().decode(message);
 
             KubithonPacket receivedKubicket = KubithonPacket.deserialize(bytes);
-            if (receivedKubicket != null)
+            if (receivedKubicket != null) {
                 replicationManager.handleKubicket(playerName, receivedKubicket);
+            }
+            else {
+                replicationMod.getLogger().info("Unknown kubicket.");
+            }
         }
     }
 }

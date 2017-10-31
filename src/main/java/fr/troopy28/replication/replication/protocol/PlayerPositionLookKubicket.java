@@ -84,15 +84,7 @@ public class PlayerPositionLookKubicket extends KubithonPacket {
         return pitchByte;
     }
 
-    public void setPitchByte(byte pitchByte) {
-        this.pitchByte = pitchByte;
-    }
-
     public byte getYawByte() {
         return yawByte;
-    }
-
-    public void setYawByte(byte yawByte) {
-        this.yawByte = yawByte;
     }
 }
