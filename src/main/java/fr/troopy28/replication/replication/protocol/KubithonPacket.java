@@ -176,7 +176,8 @@ public abstract class KubithonPacket {
         connectionKubicket.setPlayerName(pseudo);
         connectionKubicket.setState(state);
 
-        if(state == 1)
+        // If it is a connection
+        if(state == 0)
         {
             // The skin
             byte[] skinLengthBytes = Arrays.copyOfRange(packetBytes, idx, idx + 2);

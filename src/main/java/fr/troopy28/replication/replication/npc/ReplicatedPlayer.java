@@ -173,7 +173,7 @@ public class ReplicatedPlayer implements Runnable {
     }
 
     private void sendStuff(EntityPlayerMP target) {
-        /*ReplicationMod.get().getLogger().info("Gonna send the stuff packets to " + target.getName());
+        ReplicationMod.get().getLogger().info("Gonna send the stuff packets to " + target.getName());
 
         SPacketEntityEquipment headPacket = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.HEAD, npcEntity.getItemStackFromSlot(EntityEquipmentSlot.HEAD));
         target.connection.sendPacket(headPacket);
@@ -198,7 +198,6 @@ public class ReplicatedPlayer implements Runnable {
         SPacketEntityEquipment offHandPacket = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.OFFHAND, npcEntity.getItemStackFromSlot(EntityEquipmentSlot.OFFHAND));
         target.connection.sendPacket(offHandPacket);
         ReplicationMod.get().getLogger().info("Sent the off hand packet to" + target.getName());
-*/
     }
 
     /**
@@ -226,7 +225,7 @@ public class ReplicatedPlayer implements Runnable {
                 onGround
         );
         sendPacketToAllTargets(look);
-        SPacketEntityHeadLook headLook = new SPacketEntityHeadLook(npcEntity, yawByte);
+        SPacketEntityHeadLook headLook = new SPacketEntityHeadLook(npcEntity, pitchByte);
         sendPacketToAllTargets(headLook);
     }
 
@@ -249,11 +248,14 @@ public class ReplicatedPlayer implements Runnable {
      * replicated.
      */
     public void destroy() {
-        npcsEntityIds.remove(npcEntity.getEntityId());
+        if (npcsEntityIds.contains(npcEntity.getEntityId()))
+            // Another example of the stupidity of Java: the cast is necessary to remove an element, or it thinks it should remove at an index
+            npcsEntityIds.remove((Integer)npcEntity.getEntityId());
         npcEntity.setDead();
         updateTimer.cancel();
         targets.clear();
         targets.forEach(this::dispawnFor);
+        targets.clear();
         targets = null;
         ReplicationMod.get().getLogger().info("The player " + npcEntity.getName() + " is no more replicated.");
         npcEntity = null;
@@ -293,7 +295,7 @@ public class ReplicatedPlayer implements Runnable {
                     ForgeScheduler.runTaskLater(() -> {
                         ReplicationMod.get().getLogger().info("Adding the target " + nearbyNotTargetPlayer.getName() + ".");
                         spawnFor(nearbyNotTargetPlayer);
-                    }, 1000);
+                    }, 5000); // Absolutely necessary to wait, or a NPE will occur on the client side, because the world might not be fully loaded.
                 } else if (nearbyNotTargetPlayer.getDistance(npcEntity) >= NPC_VISIBILITY_DISTANCE
                         && targets.contains(nearbyNotTargetPlayer)) {
                     ReplicationMod.get().getLogger().info("Removing the target " + nearbyNotTargetPlayer.getName() + ".");
@@ -305,7 +307,10 @@ public class ReplicatedPlayer implements Runnable {
             }
         }
         // Remove all disconnected targets
-        targets.stream().filter(EntityPlayerMP::hasDisconnected).forEach(targets::remove);
+        targets.stream().filter(EntityPlayerMP::hasDisconnected).forEach(target -> {
+            targets.remove(target);
+            ReplicationMod.get().getLogger().info("Removed " + target.getName() + " from the targets.");
+        });
     }
 
     // </editor-fold>

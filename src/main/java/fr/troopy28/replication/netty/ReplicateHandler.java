@@ -38,12 +38,14 @@ public class ReplicateHandler {
      * @param player The player you no more want to be replicated.
      */
     public static void stopHandling(EntityPlayerMP player) {
+        plugin.getLogger().info("Tyring to stop handling " + player);
         PlayerConnectionKubicket connectionKubicket = new PlayerConnectionKubicket();
         connectionKubicket.setPlayerName(player.getName());
         connectionKubicket.setPlayerUuid(player.getUniqueID().toString());
-        connectionKubicket.setState((byte) 1);
+        connectionKubicket.setState((byte) 1); // 1 = disconnection
         plugin.getMessageBroker().publish(
                 BrokingConstant.REPLICATION_PATTERN.concat(String.valueOf(plugin.getServerId())).concat(player.getName()),
                 Base64.getEncoder().encodeToString(connectionKubicket.serialize()));
+        plugin.getLogger().info("Sent the disconnection packet.");
     }
 }

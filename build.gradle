@@ -54,8 +54,7 @@ minecraft {
 
 dependencies {
     compile 'me.lucko.luckperms:luckperms-api:3.3'
-    bundle group: 'org.slf4j', name: 'slf4j-simple', version: '1.6.1' // Actuellement utilisé car j'ai toutes mes dépendances en .java dans mon projet (c'était pour voir)
-    bundle group: 'cglib', name: 'cglib', version: '2.2.2'            // Idem
+    bundle 'redis.clients:jedis:2.9.0'                                // Redis API
 
 
     // you may put jars on which you depend on in ./libs

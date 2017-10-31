@@ -2,11 +2,9 @@ package fr.troopy28.replication.broking;
 
 /**
  * Manages a pub sub system.
- * Default implementation: {@link org.kubithon.replicate.broking.jedis.JedisPubSubManager}.
  *
  * @param <T> Credentials specific to the pub sub manager.
  * @author Oscar Davis
- * @see org.kubithon.replicate.broking.jedis.JedisPubSubManager
  * @since 1.0.0
  */
 public interface PubSubManager<T extends Credentials>

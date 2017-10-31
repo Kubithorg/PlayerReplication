@@ -22,6 +22,7 @@ import net.minecraft.network.play.server.SPacketPlayerListItem;
 import net.minecraft.network.play.server.SPacketSpawnPlayer;
 import net.minecraft.server.management.PlayerInteractionManager;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -131,10 +132,12 @@ public class ReplicationMod {
 
     // Player logs in
     @SubscribeEvent
-    public void onPlayerLogIn(PlayerEvent.PlayerLoggedInEvent event) {
-        logger.info(event.player.getName() + " joined us!");
+    public void onPlayerLogIn(EntityJoinWorldEvent event) {
+        if(!(event.getEntity() instanceof EntityPlayerMP))
+            return;
+        logger.info(event.getEntity().getName() + " joined us!");
 
-        final EntityPlayerMP player = (EntityPlayerMP) event.player;
+        final EntityPlayerMP player = (EntityPlayerMP) event.getEntity();
         //test(player);
         if (shouldBeReplicated(player)) {
             logger.info(player.getName() + " has the permission to be replicated.");
