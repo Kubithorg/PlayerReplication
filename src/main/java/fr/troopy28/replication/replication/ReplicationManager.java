@@ -9,6 +9,7 @@ import fr.troopy28.replication.replication.protocol.*;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 
@@ -65,8 +66,6 @@ public class ReplicationManager {
      * @param receivedKubicket The kubicket received through Redis.
      */
     public void handleKubicket(String playerName, KubithonPacket receivedKubicket) {
-        //ReplicationMod.get().getLogger().info("Handling a kubicket. Player: " + playerName + " | PacketType: " + receivedKubicket.getType());
-
         if (receivedKubicket instanceof PlayerLookKubicket) {
             PlayerLookKubicket lookKubicket = (PlayerLookKubicket) receivedKubicket;
             replicatedPlayers.get(playerName).updateLook(
@@ -103,12 +102,33 @@ public class ReplicationManager {
 
     private void handleEquipmentKubicket(String playerName, PlayerEquipmentKubicket receivedPacket) {
         ReplicatedPlayer replicatedPlayer = replicatedPlayers.get(playerName);
-        replicatedPlayer.setHelmet(Item.getItemById(receivedPacket.getHelmetId()));
-        replicatedPlayer.setChestplate(Item.getItemById(receivedPacket.getChestId()));
-        replicatedPlayer.setLeggings(Item.getItemById(receivedPacket.getLeggingsId()));
-        replicatedPlayer.setBoots(Item.getItemById(receivedPacket.getBootsId()));
-        replicatedPlayer.setItemInMainHand(Item.getItemById(receivedPacket.getMainHandId()));
-        replicatedPlayer.setItemInOffHand(Item.getItemById(receivedPacket.getOffHandId()));
+        if (replicatedPlayer == null)
+            return;
+        replicatedPlayer.setHelmet(
+                Item.getItemById(receivedPacket.getHelmetId()),
+                receivedPacket.isHelmetEnchanted(),
+                receivedPacket.getHelmetMeta()
+        );
+        replicatedPlayer.setChestplate(Item.getItemById(receivedPacket.getChestId()),
+                receivedPacket.isChestEnchanted(),
+                receivedPacket.getChestMeta()
+        );
+        replicatedPlayer.setLeggings(Item.getItemById(receivedPacket.getLeggingsId()),
+                receivedPacket.isLeggingsEnchanted(),
+                receivedPacket.getLeggingsMeta()
+        );
+        replicatedPlayer.setBoots(Item.getItemById(receivedPacket.getBootsId()),
+                receivedPacket.isBootsEnchanted(),
+                receivedPacket.getBootsMeta()
+        );
+        replicatedPlayer.setItemInMainHand(Item.getItemById(receivedPacket.getMainHandId()),
+                receivedPacket.isMainHandEnchanted(),
+                receivedPacket.getMainHandMeta()
+        );
+        replicatedPlayer.setItemInOffHand(Item.getItemById(receivedPacket.getOffHandId()),
+                receivedPacket.isOffHandEnchanted(),
+                receivedPacket.getOffHandMeta()
+        );
     }
 
     /**
@@ -145,22 +165,23 @@ public class ReplicationManager {
      * @param entityPlayer The player you want to send the stuff.
      */
     public static void sendPlayerStuff(EntityPlayer entityPlayer) {
-        net.minecraft.item.ItemStack helmet = entityPlayer.getItemStackFromSlot(EntityEquipmentSlot.HEAD);
-        net.minecraft.item.ItemStack chestplate = entityPlayer.getItemStackFromSlot(EntityEquipmentSlot.CHEST);
-        net.minecraft.item.ItemStack leggings = entityPlayer.getItemStackFromSlot(EntityEquipmentSlot.LEGS);
-        net.minecraft.item.ItemStack boots = entityPlayer.getItemStackFromSlot(EntityEquipmentSlot.FEET);
-        net.minecraft.item.ItemStack mainHand = entityPlayer.getItemStackFromSlot(EntityEquipmentSlot.MAINHAND);
-        net.minecraft.item.ItemStack offHand = entityPlayer.getItemStackFromSlot(EntityEquipmentSlot.OFFHAND);
+        ItemStack helmet = entityPlayer.getItemStackFromSlot(EntityEquipmentSlot.HEAD);
+        ItemStack chestplate = entityPlayer.getItemStackFromSlot(EntityEquipmentSlot.CHEST);
+        ItemStack leggings = entityPlayer.getItemStackFromSlot(EntityEquipmentSlot.LEGS);
+        ItemStack boots = entityPlayer.getItemStackFromSlot(EntityEquipmentSlot.FEET);
+        ItemStack mainHand = entityPlayer.getItemStackFromSlot(EntityEquipmentSlot.MAINHAND);
+        ItemStack offHand = entityPlayer.getItemStackFromSlot(EntityEquipmentSlot.OFFHAND);
 
-        final int helmetId = helmet != null ? Item.getIdFromItem(helmet.getItem()) : 0;
-        final int chestplateId = chestplate != null ? Item.getIdFromItem(chestplate.getItem()) : 0;
-        final int leggingsId = leggings != null ? Item.getIdFromItem(leggings.getItem()) : -1;
-        final int bootsId = boots != null ? Item.getIdFromItem(boots.getItem()) : 0;
-        final int mainHandId = mainHand != null ? Item.getIdFromItem(mainHand.getItem()) : 0;
-        final int offHandId = offHand != null ? Item.getIdFromItem(offHand.getItem()) : 0;
+        final int helmetId = Item.getIdFromItem(helmet.getItem());
+        final int chestplateId = Item.getIdFromItem(chestplate.getItem());
+        final int leggingsId = Item.getIdFromItem(leggings.getItem());
+        final int bootsId = Item.getIdFromItem(boots.getItem());
+        final int mainHandId = Item.getIdFromItem(mainHand.getItem());
+        final int offHandId = Item.getIdFromItem(offHand.getItem());
 
         PlayerEquipmentKubicket equipmentKubicket = new PlayerEquipmentKubicket();
 
+        // The IDs
         equipmentKubicket.setHelmetId((short) helmetId);
         equipmentKubicket.setChestId((short) chestplateId);
         equipmentKubicket.setLeggingsId((short) leggingsId);
@@ -168,6 +189,23 @@ public class ReplicationManager {
         equipmentKubicket.setMainHandId((short) mainHandId);
         equipmentKubicket.setOffHandId((short) offHandId);
 
+        // The metadata
+        equipmentKubicket.setHelmetMeta(helmet.getMetadata());
+        equipmentKubicket.setChestMeta(chestplate.getMetadata());
+        equipmentKubicket.setLeggingsMeta(leggings.getMetadata());
+        equipmentKubicket.setBootsMeta(boots.getMetadata());
+        equipmentKubicket.setMainHandMeta(mainHand.getMetadata());
+        equipmentKubicket.setOffHandMeta(offHand.getMetadata());
+
+        // The enchantments
+        equipmentKubicket.setHelmetEnchanted(helmet.isItemEnchanted());
+        equipmentKubicket.setChestEnchanted(chestplate.isItemEnchanted());
+        equipmentKubicket.setLeggingsEnchanted(leggings.isItemEnchanted());
+        equipmentKubicket.setBootsEnchanted(boots.isItemEnchanted());
+        equipmentKubicket.setMainHandEnchanted(mainHand.isItemEnchanted());
+        equipmentKubicket.setOffHandEnchanted(offHand.isItemEnchanted());
+
+        // Send it
         ReplicationMod.get().getMessageBroker().publish(
                 BrokingConstant.REPLICATION_PATTERN.concat(
                         String.valueOf(ReplicationMod.get().getServerId()))

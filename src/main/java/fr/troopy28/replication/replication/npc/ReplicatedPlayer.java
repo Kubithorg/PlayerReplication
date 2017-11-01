@@ -5,10 +5,12 @@ import com.mojang.authlib.GameProfile;
 import fr.troopy28.replication.ReplicationMod;
 import fr.troopy28.replication.replication.protocol.KubithonPacket;
 import fr.troopy28.replication.utils.ForgeScheduler;
+import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.*;
 import net.minecraft.server.management.PlayerInteractionManager;
@@ -44,6 +46,8 @@ public class ReplicatedPlayer implements Runnable {
      */
     private Timer updateTimer;
 
+    private int stuffCounter;
+
     /**
      * The connected players that are going to receive the packets from this NPC.
      */
@@ -58,6 +62,7 @@ public class ReplicatedPlayer implements Runnable {
      * @param profile Mojang profile of the player to replicate.
      */
     public ReplicatedPlayer(WorldServer world, GameProfile profile) {
+        stuffCounter = 0;
         if (world.getMinecraftServer() == null) {
             ReplicationMod.get().getLogger().error("Error : Minecraft server can't be accessed.");
             return;
@@ -90,86 +95,63 @@ public class ReplicatedPlayer implements Runnable {
         sendPacketToAllTargets(swingPacket);
     }
 
-    /**
-     * Updates the look of this NPC. The pitch and the yaw are defined in term of 1/255 of circle (0 = 0°; 255 = 360°).
-     * See wiki.vg for the details.
-     *
-     * @param pitchByte The byte representation of the pitch.
-     * @param yawByte   The byte representation of the yaw.
-     */
-    public void updateLook(byte pitchByte, byte yawByte) {
-        npcEntity.setPositionAndRotation(npcEntity.posX, npcEntity.posY, npcEntity.posZ, yawByte, pitchByte);
-        npcEntity.setRotationYawHead(yawByte);
-        SPacketEntity.S16PacketEntityLook look = new SPacketEntity.S16PacketEntityLook(
-                npcEntity.getEntityId(),
-                pitchByte,
-                yawByte,
-                npcEntity.onGround
-        );
-        sendPacketToAllTargets(look);
-        SPacketEntityHeadLook headLook = new SPacketEntityHeadLook(npcEntity, yawByte);
-        sendPacketToAllTargets(headLook);
-    }
 
     // <editor-fold desc="Player equipment and items">
     // Self documenting....
 
-    public void setItemInMainHand(Item item) {
-        npcEntity.setHeldItem(EnumHand.MAIN_HAND, new net.minecraft.item.ItemStack(item, 1));
-        SPacketEntityEquipment equipment = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.MAINHAND, new net.minecraft.item.ItemStack(item, 1));
+    public void setItemInMainHand(Item item, boolean enchanted, int meta) {
+        ReplicationMod.get().getLogger().info("Item in hand meta: " + meta + " | enchanted: " + enchanted);
+        ItemStack itemStack = new ItemStack(item, 1, meta);
+        if (enchanted)
+            itemStack.addEnchantment(Enchantment.getEnchantmentByID(0), 1);
+        npcEntity.setHeldItem(EnumHand.MAIN_HAND, itemStack);
+        SPacketEntityEquipment equipment = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.MAINHAND, itemStack);
         sendPacketToAllTargets(equipment);
     }
 
-    public void setItemInOffHand(Item item) {
-        npcEntity.setHeldItem(EnumHand.OFF_HAND, new net.minecraft.item.ItemStack(item, 1));
-        SPacketEntityEquipment equipment = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.OFFHAND, new net.minecraft.item.ItemStack(item, 1));
+    public void setItemInOffHand(Item item, boolean enchanted, int meta) {
+        ItemStack itemStack = new ItemStack(item, 1, meta);
+        if (enchanted)
+            itemStack.addEnchantment(Enchantment.getEnchantmentByID(0), 1);
+        npcEntity.setHeldItem(EnumHand.OFF_HAND, itemStack);
+        SPacketEntityEquipment equipment = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.OFFHAND, itemStack);
         sendPacketToAllTargets(equipment);
     }
 
-    public void setHelmet(Item item) {
-        npcEntity.setItemStackToSlot(EntityEquipmentSlot.HEAD, new net.minecraft.item.ItemStack(item, 1));
-        SPacketEntityEquipment equipment = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.HEAD, new net.minecraft.item.ItemStack(item, 1));
+    public void setHelmet(Item item, boolean enchanted, int meta) {
+        ItemStack itemStack = new ItemStack(item, 1, meta);
+        if (enchanted)
+            itemStack.addEnchantment(Enchantment.getEnchantmentByID(0), 1);
+        npcEntity.setItemStackToSlot(EntityEquipmentSlot.HEAD, itemStack);
+        SPacketEntityEquipment equipment = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.HEAD, itemStack);
         sendPacketToAllTargets(equipment);
     }
 
-    public void setChestplate(Item item) {
-        npcEntity.setItemStackToSlot(EntityEquipmentSlot.CHEST, new net.minecraft.item.ItemStack(item, 1));
-        SPacketEntityEquipment equipment = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.CHEST, new net.minecraft.item.ItemStack(item, 1));
+    public void setChestplate(Item item, boolean enchanted, int meta) {
+        ItemStack itemStack = new ItemStack(item, 1, meta);
+        if (enchanted)
+            itemStack.addEnchantment(Enchantment.getEnchantmentByID(0), 1);
+        npcEntity.setItemStackToSlot(EntityEquipmentSlot.CHEST, itemStack);
+        SPacketEntityEquipment equipment = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.CHEST, itemStack);
         sendPacketToAllTargets(equipment);
     }
 
-    public void setLeggings(Item item) {
-        npcEntity.setItemStackToSlot(EntityEquipmentSlot.LEGS, new net.minecraft.item.ItemStack(item, 1));
-        SPacketEntityEquipment equipment = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.LEGS, new net.minecraft.item.ItemStack(item, 1));
+    public void setLeggings(Item item, boolean enchanted, int meta) {
+        ItemStack itemStack = new ItemStack(item, 1, meta);
+        if (enchanted)
+            itemStack.addEnchantment(Enchantment.getEnchantmentByID(0), 1);
+        npcEntity.setItemStackToSlot(EntityEquipmentSlot.LEGS, itemStack);
+        SPacketEntityEquipment equipment = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.LEGS, itemStack);
         sendPacketToAllTargets(equipment);
     }
 
-    public void setBoots(Item item) {
-        npcEntity.setItemStackToSlot(EntityEquipmentSlot.FEET, new net.minecraft.item.ItemStack(item, 1));
-        SPacketEntityEquipment equipment = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.FEET, new net.minecraft.item.ItemStack(item, 1));
+    public void setBoots(Item item, boolean enchanted, int meta) {
+        ItemStack itemStack = new ItemStack(item, 1, meta);
+        if (enchanted)
+            itemStack.addEnchantment(Enchantment.getEnchantmentByID(0), 1);
+        npcEntity.setItemStackToSlot(EntityEquipmentSlot.FEET, itemStack);
+        SPacketEntityEquipment equipment = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.FEET, itemStack);
         sendPacketToAllTargets(equipment);
-    }
-
-
-    // </editor-fold>
-
-    // <editor-fold desc="Teleportation methods">
-
-    /**
-     * Updates the location of the player entity of this NPC, and then sends packets to notify the changes to the
-     * targets.
-     *
-     * @param x        The x position of the sponsor.
-     * @param y        The y position of the sponsor.
-     * @param z        The z position of the sponsor.
-     * @param onGround Is the sponsor on the ground?
-     */
-    public void teleport(float x, float y, float z, boolean onGround) {
-        //ReplicationMod.get().getLogger().info("Updated the position of the NPC " + npcEntity.getName());
-        npcEntity.setPosition(x, y, z);
-        npcEntity.onGround = onGround;
-        SPacketEntityTeleport teleport = new SPacketEntityTeleport(npcEntity);
-        sendPacketToAllTargets(teleport);
     }
 
     private void sendStuff(EntityPlayerMP target) {
@@ -200,6 +182,27 @@ public class ReplicatedPlayer implements Runnable {
         ReplicationMod.get().getLogger().info("Sent the off hand packet to" + target.getName());
     }
 
+
+    // </editor-fold>
+
+    // <editor-fold desc="Teleportation methods">
+
+    /**
+     * Updates the location of the player entity of this NPC, and then sends packets to notify the changes to the
+     * targets.
+     *
+     * @param x        The x position of the sponsor.
+     * @param y        The y position of the sponsor.
+     * @param z        The z position of the sponsor.
+     * @param onGround Is the sponsor on the ground?
+     */
+    public void teleport(float x, float y, float z, boolean onGround) {
+        npcEntity.setPosition(x, y, z);
+        npcEntity.onGround = onGround;
+        SPacketEntityTeleport teleport = new SPacketEntityTeleport(npcEntity);
+        sendPacketToAllTargets(teleport);
+    }
+
     /**
      * Updates the location of the player entity of this NPC, and then sends packets to notify the changes to the
      * targets.
@@ -212,22 +215,46 @@ public class ReplicatedPlayer implements Runnable {
      * @param onGround  Is the sponsor on the ground?
      */
     public void teleport(float x, float y, float z, byte pitchByte, byte yawByte, boolean onGround) {
-        //ReplicationMod.get().getLogger().info("Updated the position of the NPC " + npcEntity.getName());
         npcEntity.setPositionAndRotation(x, y, z, KubithonPacket.getAngleFromByte(yawByte), KubithonPacket.getAngleFromByte(pitchByte));
+        npcEntity.setRotationYawHead(KubithonPacket.getAngleFromByte(yawByte));
         npcEntity.onGround = onGround;
 
         SPacketEntityTeleport teleport = new SPacketEntityTeleport(npcEntity);
         sendPacketToAllTargets(teleport);
+
         SPacketEntity.S16PacketEntityLook look = new SPacketEntity.S16PacketEntityLook(
                 npcEntity.getEntityId(),
-                pitchByte,
                 yawByte,
+                pitchByte,
                 onGround
         );
         sendPacketToAllTargets(look);
-        SPacketEntityHeadLook headLook = new SPacketEntityHeadLook(npcEntity, pitchByte);
+        SPacketEntityHeadLook headLook = new SPacketEntityHeadLook(npcEntity, yawByte);
         sendPacketToAllTargets(headLook);
     }
+
+    /**
+     * Updates the look of this NPC. The pitch and the yaw are defined in term of 1/255 of circle (0 = 0°; 255 = 360°).
+     * See wiki.vg for the details.
+     *
+     * @param pitchByte The byte representation of the pitch.
+     * @param yawByte   The byte representation of the yaw.
+     */
+    public void updateLook(byte pitchByte, byte yawByte) {
+        npcEntity.setPositionAndRotation(npcEntity.posX, npcEntity.posY, npcEntity.posZ, KubithonPacket.getAngleFromByte(yawByte), KubithonPacket.getAngleFromByte(pitchByte));
+        npcEntity.setRotationYawHead(KubithonPacket.getAngleFromByte(yawByte));
+        SPacketEntity.S16PacketEntityLook look = new SPacketEntity.S16PacketEntityLook(
+                npcEntity.getEntityId(),
+                yawByte,
+                pitchByte,
+                npcEntity.onGround
+        );
+        sendPacketToAllTargets(look);
+        SPacketEntityHeadLook headLook = new SPacketEntityHeadLook(npcEntity, yawByte);
+        sendPacketToAllTargets(headLook);
+    }
+
+    // </editor-fold>
 
     /**
      * Shorthand for sending the specified packet to all the targets.
@@ -238,7 +265,6 @@ public class ReplicatedPlayer implements Runnable {
         targets.stream().forEach(target -> target.connection.sendPacket(packet));
     }
 
-    // </editor-fold>
 
     // <editor-fold desc="Spawning / dispawing / destroying">
 
@@ -250,7 +276,7 @@ public class ReplicatedPlayer implements Runnable {
     public void destroy() {
         if (npcsEntityIds.contains(npcEntity.getEntityId()))
             // Another example of the stupidity of Java: the cast is necessary to remove an element, or it thinks it should remove at an index
-            npcsEntityIds.remove((Integer)npcEntity.getEntityId());
+            npcsEntityIds.remove((Integer) npcEntity.getEntityId());
         npcEntity.setDead();
         updateTimer.cancel();
         targets.clear();
@@ -266,6 +292,7 @@ public class ReplicatedPlayer implements Runnable {
         target.connection.sendPacket(destroyPacket);
         SPacketPlayerListItem info = new SPacketPlayerListItem(SPacketPlayerListItem.Action.REMOVE_PLAYER, npcEntity);
         target.connection.sendPacket(info);
+        ReplicationMod.get().getLogger().info("Sent the dispawning packets to " + target.getName());
     }
 
     private void spawnFor(EntityPlayerMP target) {
@@ -307,10 +334,7 @@ public class ReplicatedPlayer implements Runnable {
             }
         }
         // Remove all disconnected targets
-        targets.stream().filter(EntityPlayerMP::hasDisconnected).forEach(target -> {
-            targets.remove(target);
-            ReplicationMod.get().getLogger().info("Removed " + target.getName() + " from the targets.");
-        });
+        targets.removeIf(EntityPlayerMP::hasDisconnected);
     }
 
     // </editor-fold>

@@ -1,6 +1,8 @@
 package fr.troopy28.replication.replication.protocol;
 
 
+import com.google.common.primitives.Ints;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.client.CPacketAnimation;
 import net.minecraft.network.play.client.CPacketPlayer;
@@ -57,7 +59,7 @@ public abstract class KubithonPacket {
      * @return Return the created kubicket corresponding to the specified packet. Null if the packet isn't a packet
      * to replicate.
      */
-    public static KubithonPacket generateKubicket(Packet<?> receivedPacket) {
+    public static KubithonPacket generateKubicket(Packet<?> receivedPacket, EntityPlayerMP player) {
         KubithonPacket finalKubicket = null;
 
         // Position only
@@ -65,9 +67,9 @@ public abstract class KubithonPacket {
             CPacketPlayer.Position posPacket = (CPacketPlayer.Position) receivedPacket;
             PlayerPositionKubicket kubicket = new PlayerPositionKubicket();
 
-            kubicket.setxPos((float) posPacket.getX(0));
-            kubicket.setyPos((float) posPacket.getY(0));
-            kubicket.setzPos((float) posPacket.getZ(0));
+            kubicket.setxPos((float) posPacket.getX(player.posX));
+            kubicket.setyPos((float) posPacket.getY(player.posY));
+            kubicket.setzPos((float) posPacket.getZ(player.posZ));
             kubicket.setOnGround(posPacket.isOnGround());
             finalKubicket = kubicket;
         }
@@ -76,11 +78,11 @@ public abstract class KubithonPacket {
             CPacketPlayer.PositionRotation posLookPacket = (CPacketPlayer.PositionRotation) receivedPacket;
             PlayerPositionLookKubicket kubicket = new PlayerPositionLookKubicket();
 
-            kubicket.setxPos((float) posLookPacket.getX(0));
-            kubicket.setyPos((float) posLookPacket.getY(0));
-            kubicket.setzPos((float) posLookPacket.getZ(0));
-            kubicket.setYaw(posLookPacket.getYaw(0));
-            kubicket.setPitch(posLookPacket.getPitch(0));
+            kubicket.setxPos((float) posLookPacket.getX(player.posX));
+            kubicket.setyPos((float) posLookPacket.getY(player.posY));
+            kubicket.setzPos((float) posLookPacket.getZ(player.posZ));
+            kubicket.setYaw(posLookPacket.getYaw(player.rotationYaw));
+            kubicket.setPitch(posLookPacket.getPitch(player.rotationPitch));
             kubicket.setOnGround(posLookPacket.isOnGround());
             finalKubicket = kubicket;
         }
@@ -89,8 +91,8 @@ public abstract class KubithonPacket {
             CPacketPlayer.Rotation lookPacket = (CPacketPlayer.Rotation) receivedPacket;
             PlayerLookKubicket kubicket = new PlayerLookKubicket();
 
-            kubicket.setYaw(lookPacket.getYaw(0));
-            kubicket.setPitch(lookPacket.getPitch(0));
+            kubicket.setYaw(lookPacket.getYaw(player.rotationYaw));
+            kubicket.setPitch(lookPacket.getPitch(player.rotationPitch));
             finalKubicket = kubicket;
         } else if (receivedPacket instanceof CPacketAnimation) {
             CPacketAnimation handPacket = (CPacketAnimation) receivedPacket;
@@ -177,8 +179,7 @@ public abstract class KubithonPacket {
         connectionKubicket.setState(state);
 
         // If it is a connection
-        if(state == 0)
-        {
+        if (state == 0) {
             // The skin
             byte[] skinLengthBytes = Arrays.copyOfRange(packetBytes, idx, idx + 2);
             idx += 2;
@@ -271,13 +272,56 @@ public abstract class KubithonPacket {
         byte[] offHandBytes = Arrays.copyOfRange(packetBytes, 11, 13);
         short offHandId = KubithonPacket.byteArrayToShort(offHandBytes);
 
+        byte[] helmetMetaBytes = Arrays.copyOfRange(packetBytes, 13, 15);
+        short helmetMeta = KubithonPacket.byteArrayToShort(helmetMetaBytes);
+
+        byte[] chestMetaBytes = Arrays.copyOfRange(packetBytes, 15, 17);
+        int chestMeta = KubithonPacket.byteArrayToShort(chestMetaBytes);
+
+        byte[] leggingsMetaBytes = Arrays.copyOfRange(packetBytes, 17, 19);
+        int leggingsMeta = KubithonPacket.byteArrayToShort(leggingsMetaBytes);
+
+        byte[] bootsMetaBytes = Arrays.copyOfRange(packetBytes, 19, 21);
+        int bootsMeta = KubithonPacket.byteArrayToShort(bootsMetaBytes);
+
+        byte[] mainHandMetaBytes = Arrays.copyOfRange(packetBytes, 21, 23);
+        int mainHandMeta = KubithonPacket.byteArrayToShort(mainHandMetaBytes);
+
+        byte[] offHandMetaBytes = Arrays.copyOfRange(packetBytes, 23, 25);
+        int offHandMeta = KubithonPacket.byteArrayToShort(offHandMetaBytes);
+
+        boolean helmetEnchanted = packetBytes[25] == 1;
+        boolean chestEnchanted = packetBytes[26] == 1;
+        boolean leggingsEnchanted = packetBytes[27] == 1;
+        boolean bootsEnchanted = packetBytes[28] == 1;
+        boolean mainHandEnchanted = packetBytes[29] == 1;
+        boolean offHandEnchanted = packetBytes[30] == 1;
+
         PlayerEquipmentKubicket equipmentKubicket = new PlayerEquipmentKubicket();
+
+        // IDs
         equipmentKubicket.setHelmetId(helmetId);
         equipmentKubicket.setChestId(chestId);
         equipmentKubicket.setLeggingsId(leggingsId);
         equipmentKubicket.setBootsId(bootsId);
         equipmentKubicket.setMainHandId(mainHandId);
         equipmentKubicket.setOffHandId(offHandId);
+
+        // METAs
+        equipmentKubicket.setHelmetMeta(helmetMeta);
+        equipmentKubicket.setChestMeta(chestMeta);
+        equipmentKubicket.setLeggingsMeta(leggingsMeta);
+        equipmentKubicket.setBootsMeta(bootsMeta);
+        equipmentKubicket.setMainHandMeta(mainHandMeta);
+        equipmentKubicket.setOffHandMeta(offHandMeta);
+
+        // Enchantments
+        equipmentKubicket.setHelmetEnchanted(helmetEnchanted);
+        equipmentKubicket.setChestEnchanted(chestEnchanted);
+        equipmentKubicket.setLeggingsEnchanted(leggingsEnchanted);
+        equipmentKubicket.setBootsEnchanted(bootsEnchanted);
+        equipmentKubicket.setMainHandEnchanted(mainHandEnchanted);
+        equipmentKubicket.setOffHandEnchanted(offHandEnchanted);
 
         return equipmentKubicket;
     }
@@ -378,14 +422,11 @@ public abstract class KubithonPacket {
     }
 
     byte[] integerToByteArray(int value) {
-        ByteBuffer buffer = ByteBuffer.allocate(4);
-        buffer.putInt(value);
-        return buffer.array();
+        return Ints.toByteArray(value);
     }
 
     public static int byteArrayToInteger(byte[] bytes) {
-        ByteBuffer wrapped = ByteBuffer.wrap(bytes); // big-endian by default
-        return wrapped.getInt(); // 1
+        return Ints.fromByteArray(bytes);
     }
 
     /**
@@ -397,11 +438,11 @@ public abstract class KubithonPacket {
     }
 
     public static byte getByteFromAngle(float angle) {
-        return (byte) ((angle * 255) / 360);
+        return (byte) ((angle * 256) / 360);
     }
 
     public static float getAngleFromByte(byte val) {
-        return (float) ((val * 360) / 255);
+        return (float) ((val * 360) / 256);
     }
 
     // </editor-fold>

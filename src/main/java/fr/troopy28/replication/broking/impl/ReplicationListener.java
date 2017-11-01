@@ -32,12 +32,10 @@ public class ReplicationListener implements MessageListener {
         String playerName = topic.substring(patternLength + 1);
         if (senderUid != ReplicationMod.get().getServerId()) {
             byte[] bytes = Base64.getDecoder().decode(message);
-
             KubithonPacket receivedKubicket = KubithonPacket.deserialize(bytes);
             if (receivedKubicket != null) {
                 replicationManager.handleKubicket(playerName, receivedKubicket);
-            }
-            else {
+            } else {
                 replicationMod.getLogger().info("Unknown kubicket.");
             }
         }
