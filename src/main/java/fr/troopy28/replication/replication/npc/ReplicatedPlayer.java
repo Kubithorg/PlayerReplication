@@ -53,6 +53,8 @@ public class ReplicatedPlayer implements Runnable {
      */
     private List<EntityPlayerMP> targets;
 
+    private byte lastYawByte;
+
     /**
      * Creates a NMS {@link EntityPlayer} with the specified name and UUID. Initializes the targets {@link ArrayList},
      * that is to say the list of the players that will receive the packets from this sponsor. Then starts a
@@ -94,7 +96,6 @@ public class ReplicatedPlayer implements Runnable {
         SPacketAnimation swingPacket = new SPacketAnimation(npcEntity, hand.ordinal());
         sendPacketToAllTargets(swingPacket);
     }
-
 
     // <editor-fold desc="Player equipment and items">
     // Self documenting....
@@ -201,6 +202,8 @@ public class ReplicatedPlayer implements Runnable {
         npcEntity.onGround = onGround;
         SPacketEntityTeleport teleport = new SPacketEntityTeleport(npcEntity);
         sendPacketToAllTargets(teleport);
+        SPacketEntityHeadLook headLook = new SPacketEntityHeadLook(npcEntity, lastYawByte);
+        sendPacketToAllTargets(headLook);
     }
 
     /**
@@ -215,6 +218,7 @@ public class ReplicatedPlayer implements Runnable {
      * @param onGround  Is the sponsor on the ground?
      */
     public void teleport(float x, float y, float z, byte pitchByte, byte yawByte, boolean onGround) {
+        lastYawByte = yawByte;
         npcEntity.setPositionAndRotation(x, y, z, KubithonPacket.getAngleFromByte(yawByte), KubithonPacket.getAngleFromByte(pitchByte));
         npcEntity.setRotationYawHead(KubithonPacket.getAngleFromByte(yawByte));
         npcEntity.onGround = onGround;
@@ -241,6 +245,7 @@ public class ReplicatedPlayer implements Runnable {
      * @param yawByte   The byte representation of the yaw.
      */
     public void updateLook(byte pitchByte, byte yawByte) {
+        lastYawByte = yawByte;
         npcEntity.setPositionAndRotation(npcEntity.posX, npcEntity.posY, npcEntity.posZ, KubithonPacket.getAngleFromByte(yawByte), KubithonPacket.getAngleFromByte(pitchByte));
         npcEntity.setRotationYawHead(KubithonPacket.getAngleFromByte(yawByte));
         SPacketEntity.S16PacketEntityLook look = new SPacketEntity.S16PacketEntityLook(
