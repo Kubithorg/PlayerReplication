@@ -20,13 +20,16 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.play.server.SPacketEntityTeleport;
 import net.minecraft.network.play.server.SPacketPlayerListItem;
 import net.minecraft.network.play.server.SPacketSpawnPlayer;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.management.PlayerInteractionManager;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.ServerChatEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartedEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -56,6 +59,7 @@ public class ReplicationMod {
     private ReplicationManager replicationManager;
     private ReplicationConfig config;
     private Logger logger;
+    private MinecraftServer server;
 
     /**
      * Here is initialized everything that doesn't depends on any other plugin that might not be initialized yet (Redis).
@@ -133,6 +137,7 @@ public class ReplicationMod {
     // Player logs in
     @SubscribeEvent
     public void onPlayerLogIn(EntityJoinWorldEvent event) {
+        server = event.getWorld().getMinecraftServer();
         if(!(event.getEntity() instanceof EntityPlayerMP))
             return;
         logger.info(event.getEntity().getName() + " joined us!");
@@ -173,6 +178,13 @@ public class ReplicationMod {
     public void onPlayerLogOut(PlayerEvent.PlayerLoggedOutEvent event) {
         if (shouldBeReplicated(event.player)) {
             ReplicateHandler.stopHandling((EntityPlayerMP) event.player);
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onPlayerChat(ServerChatEvent event) {
+        if(shouldBeReplicated(event.getPlayer())) {
+            ReplicationManager.sendPlayerMessage(event.getComponent(), event.getPlayer());
         }
     }
 
@@ -287,6 +299,10 @@ public class ReplicationMod {
      */
     public int getServerId() {
         return config.getServerUuid();
+    }
+
+    public MinecraftServer getMinecraftServer() {
+        return server;
     }
 
     public static ReplicationMod get() {

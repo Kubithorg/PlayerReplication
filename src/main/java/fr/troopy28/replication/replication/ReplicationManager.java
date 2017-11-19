@@ -10,6 +10,8 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 
@@ -82,7 +84,7 @@ public class ReplicationManager {
             );
         } else if (receivedKubicket instanceof PlayerPositionLookKubicket) {
             PlayerPositionLookKubicket positionLookKubicket = (PlayerPositionLookKubicket) receivedKubicket;
-            replicatedPlayers.get(playerName).teleport(
+            replicatedPlayers.get(playerName).teleport( // PITCH & YAW = 0
                     positionLookKubicket.getxPos(),
                     positionLookKubicket.getyPos(),
                     positionLookKubicket.getzPos(),
@@ -97,7 +99,20 @@ public class ReplicationManager {
             replicatedPlayers.get(playerName).moveArm(handAnimationKubicket.getHand());
         } else if (receivedKubicket instanceof PlayerEquipmentKubicket) {
             handleEquipmentKubicket(playerName, (PlayerEquipmentKubicket) receivedKubicket);
+        } else if (receivedKubicket instanceof PlayerChatMessageKubicket) {
+            handleChatMessageKubicket(playerName, (PlayerChatMessageKubicket) receivedKubicket);
         }
+    }
+
+    private void handleChatMessageKubicket(String playerName, PlayerChatMessageKubicket receivedPacket) {
+        MinecraftServer server = ReplicationMod.get().getMinecraftServer();
+        if (server != null) { // Server is null while no player came on the server
+            ITextComponent message = ITextComponent.Serializer.jsonToComponent(receivedPacket.getJsonMessage());
+            if (message != null)
+                server.getPlayerList().sendMessage(message);
+        }
+
+
     }
 
     private void handleEquipmentKubicket(String playerName, PlayerEquipmentKubicket receivedPacket) {
@@ -211,6 +226,24 @@ public class ReplicationManager {
                         String.valueOf(ReplicationMod.get().getServerId()))
                         .concat(entityPlayer.getName()),
                 Base64.getEncoder().encodeToString(equipmentKubicket.serialize())
+        );
+    }
+
+    public static void sendPlayerMessage(ITextComponent message, EntityPlayer entityPlayer) {
+        // Debug
+        String rawJson = ITextComponent.Serializer.componentToJson(message);
+        ReplicationMod.get().getLogger().info(rawJson);
+
+        // Create the kubicket
+        PlayerChatMessageKubicket chatMessageKubicket = new PlayerChatMessageKubicket();
+        chatMessageKubicket.setJsonMessage(rawJson);
+
+        // Send it
+        ReplicationMod.get().getMessageBroker().publish(
+                BrokingConstant.REPLICATION_PATTERN.concat(
+                        String.valueOf(ReplicationMod.get().getServerId()))
+                        .concat(entityPlayer.getName()),
+                Base64.getEncoder().encodeToString(chatMessageKubicket.serialize())
         );
     }
 }

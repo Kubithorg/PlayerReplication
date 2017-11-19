@@ -47,13 +47,13 @@ public class ReplicatedPlayer implements Runnable {
     private Timer updateTimer;
 
     private int stuffCounter;
+    private byte pitch;
+    private byte yaw;
 
     /**
      * The connected players that are going to receive the packets from this NPC.
      */
     private List<EntityPlayerMP> targets;
-
-    private byte lastYawByte;
 
     /**
      * Creates a NMS {@link EntityPlayer} with the specified name and UUID. Initializes the targets {@link ArrayList},
@@ -198,12 +198,27 @@ public class ReplicatedPlayer implements Runnable {
      * @param onGround Is the sponsor on the ground?
      */
     public void teleport(float x, float y, float z, boolean onGround) {
-        npcEntity.setPosition(x, y, z);
-        npcEntity.onGround = onGround;
-        SPacketEntityTeleport teleport = new SPacketEntityTeleport(npcEntity);
-        sendPacketToAllTargets(teleport);
-        SPacketEntityHeadLook headLook = new SPacketEntityHeadLook(npcEntity, lastYawByte);
-        sendPacketToAllTargets(headLook);
+        if (npcEntity.getDistance(x, y, z) > 8) { // If more than 8 blocks : TP
+            npcEntity.setPosition(x, y, z);
+            npcEntity.onGround = onGround;
+            SPacketEntityTeleport teleport = new SPacketEntityTeleport(npcEntity);
+            sendPacketToAllTargets(teleport);
+            SPacketEntityHeadLook headLook = new SPacketEntityHeadLook(npcEntity, KubithonPacket.getByteFromAngle(npcEntity.getRotationYawHead()));
+            sendPacketToAllTargets(headLook);
+            //ReplicationMod.get().getLogger().info("TP only pitch = " + pitch + " ; yaw = " + yaw);
+        } else { // Relative move
+            SPacketEntity.S15PacketEntityRelMove movePacket = new SPacketEntity.S15PacketEntityRelMove(
+                    npcEntity.getEntityId(),
+                    (long) (x * 32 - npcEntity.posX * 32) * 128,
+                    (long) (y * 32 - npcEntity.posY * 32) * 128,
+                    (long) (z * 32 - npcEntity.posZ * 32) * 128,
+                    onGround
+            );
+            sendPacketToAllTargets(movePacket);
+
+            npcEntity.setPosition(x, y, z);
+            npcEntity.onGround = onGround;
+        }
     }
 
     /**
@@ -218,23 +233,51 @@ public class ReplicatedPlayer implements Runnable {
      * @param onGround  Is the sponsor on the ground?
      */
     public void teleport(float x, float y, float z, byte pitchByte, byte yawByte, boolean onGround) {
-        lastYawByte = yawByte;
-        npcEntity.setPositionAndRotation(x, y, z, KubithonPacket.getAngleFromByte(yawByte), KubithonPacket.getAngleFromByte(pitchByte));
-        npcEntity.setRotationYawHead(KubithonPacket.getAngleFromByte(yawByte));
-        npcEntity.onGround = onGround;
+        yaw = yawByte;
+        pitch = pitchByte;
 
-        SPacketEntityTeleport teleport = new SPacketEntityTeleport(npcEntity);
-        sendPacketToAllTargets(teleport);
+        if (npcEntity.getDistance(x, y, z) > 8) { // If more than 8 blocks : TP
+            npcEntity.setPositionAndRotation(x, y, z, KubithonPacket.getAngleFromByte(yawByte), KubithonPacket.getAngleFromByte(pitchByte));
+            npcEntity.setRotationYawHead(KubithonPacket.getAngleFromByte(yawByte));
+            npcEntity.onGround = onGround;
 
-        SPacketEntity.S16PacketEntityLook look = new SPacketEntity.S16PacketEntityLook(
-                npcEntity.getEntityId(),
-                yawByte,
-                pitchByte,
-                onGround
-        );
-        sendPacketToAllTargets(look);
-        SPacketEntityHeadLook headLook = new SPacketEntityHeadLook(npcEntity, yawByte);
-        sendPacketToAllTargets(headLook);
+            npcEntity.setPosition(x, y, z);
+            npcEntity.onGround = onGround;
+            SPacketEntityTeleport teleport = new SPacketEntityTeleport(npcEntity);
+            sendPacketToAllTargets(teleport);
+
+            SPacketEntity.S16PacketEntityLook look = new SPacketEntity.S16PacketEntityLook(
+                    npcEntity.getEntityId(),
+                    yaw,
+                    pitch,
+                    onGround
+            );
+            sendPacketToAllTargets(look);
+
+            SPacketEntityHeadLook headLook = new SPacketEntityHeadLook(npcEntity, KubithonPacket.getByteFromAngle(npcEntity.rotationYawHead));
+            sendPacketToAllTargets(headLook);
+            //ReplicationMod.get().getLogger().info("TP & look pitch = " + pitch + " ; yaw = " + yaw);
+        } else { // Relative move
+            SPacketEntity.S17PacketEntityLookMove movePacket = new SPacketEntity.S17PacketEntityLookMove(
+                    npcEntity.getEntityId(),
+                    (long) (x * 32 - npcEntity.posX * 32) * 128,
+                    (long) (y * 32 - npcEntity.posY * 32) * 128,
+                    (long) (z * 32 - npcEntity.posZ * 32) * 128,
+                    yaw,
+                    pitch,
+                    onGround
+            );
+            sendPacketToAllTargets(movePacket);
+
+            npcEntity.setPositionAndRotation(x, y, z, KubithonPacket.getAngleFromByte(yawByte), KubithonPacket.getAngleFromByte(pitchByte));
+            npcEntity.setRotationYawHead(KubithonPacket.getAngleFromByte(yawByte));
+            npcEntity.onGround = onGround;
+
+            SPacketEntityHeadLook headLook = new SPacketEntityHeadLook(npcEntity, yawByte);
+            sendPacketToAllTargets(headLook);
+
+            //ReplicationMod.get().getLogger().info("TP & look pitch = " + pitch + " ; yaw = " + yaw);
+        }
     }
 
     /**
@@ -245,7 +288,9 @@ public class ReplicatedPlayer implements Runnable {
      * @param yawByte   The byte representation of the yaw.
      */
     public void updateLook(byte pitchByte, byte yawByte) {
-        lastYawByte = yawByte;
+
+        yaw = yawByte;
+        pitch = pitchByte;
         npcEntity.setPositionAndRotation(npcEntity.posX, npcEntity.posY, npcEntity.posZ, KubithonPacket.getAngleFromByte(yawByte), KubithonPacket.getAngleFromByte(pitchByte));
         npcEntity.setRotationYawHead(KubithonPacket.getAngleFromByte(yawByte));
         SPacketEntity.S16PacketEntityLook look = new SPacketEntity.S16PacketEntityLook(
@@ -257,6 +302,7 @@ public class ReplicatedPlayer implements Runnable {
         sendPacketToAllTargets(look);
         SPacketEntityHeadLook headLook = new SPacketEntityHeadLook(npcEntity, yawByte);
         sendPacketToAllTargets(headLook);
+        //ReplicationMod.get().getLogger().info("Look only. pitch = " + pitch + " ; yaw = " + yaw);
     }
 
     // </editor-fold>

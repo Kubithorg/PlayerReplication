@@ -13,8 +13,6 @@ public class PlayerPositionLookKubicket extends KubithonPacket {
     private float zPos;
     private boolean onGround;
 
-    private float pitch;
-    private float yaw;
     private byte pitchByte;
     private byte yawByte;
 
@@ -27,8 +25,8 @@ public class PlayerPositionLookKubicket extends KubithonPacket {
         writeFloat(xPos);
         writeFloat(yPos);
         writeFloat(zPos);
-        writeByte(KubithonPacket.getByteFromAngle(pitch));
-        writeByte(KubithonPacket.getByteFromAngle(yaw));
+        writeByte(pitchByte);
+        writeByte(yawByte);
         writeByte(onGround ? (byte) 1 : (byte) 0);
     }
 
@@ -56,22 +54,6 @@ public class PlayerPositionLookKubicket extends KubithonPacket {
         this.zPos = zPos;
     }
 
-    public float getPitch() {
-        return pitch;
-    }
-
-    public void setPitch(float pitch) {
-        this.pitch = pitch;
-    }
-
-    public float getYaw() {
-        return yaw;
-    }
-
-    public void setYaw(float yaw) {
-        this.yaw = yaw;
-    }
-
     public boolean isOnGround() {
         return onGround;
     }
@@ -86,5 +68,13 @@ public class PlayerPositionLookKubicket extends KubithonPacket {
 
     public byte getYawByte() {
         return yawByte;
+    }
+
+    public void setPitchByte(byte pitchByte) {
+        this.pitchByte = pitchByte;
+    }
+
+    public void setYawByte(byte yawByte) {
+        this.yawByte = yawByte;
     }
 }

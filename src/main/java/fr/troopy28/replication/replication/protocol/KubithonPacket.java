@@ -81,8 +81,8 @@ public abstract class KubithonPacket {
             kubicket.setxPos((float) posLookPacket.getX(player.posX));
             kubicket.setyPos((float) posLookPacket.getY(player.posY));
             kubicket.setzPos((float) posLookPacket.getZ(player.posZ));
-            kubicket.setYaw(posLookPacket.getYaw(player.rotationYaw));
-            kubicket.setPitch(posLookPacket.getPitch(player.rotationPitch));
+            kubicket.setYawByte(getByteFromAngle(posLookPacket.getYaw(player.rotationYaw)));
+            kubicket.setPitchByte(getByteFromAngle(posLookPacket.getPitch(player.rotationPitch)));
             kubicket.setOnGround(posLookPacket.isOnGround());
             finalKubicket = kubicket;
         }
@@ -145,9 +145,24 @@ public abstract class KubithonPacket {
                 return deserializeHandAnimKubicket(packetBytes);
             case PLAYER_EQUIPMENT:
                 return deserializePlayerEquipmentKubicket(packetBytes);
+            case PLAYER_CHAT_MESSAGE:
+                return deserializeChatMessageKubicket(packetBytes);
             default:
                 return null;
         }
+    }
+
+    private static KubithonPacket deserializeChatMessageKubicket(byte[] packetBytes) {
+        byte[] messageLengthBytes = Arrays.copyOfRange(packetBytes, 1, 3);
+        short messageLength = KubithonPacket.byteArrayToShort(messageLengthBytes);
+
+        byte[] messageBytes = Arrays.copyOfRange(packetBytes, 3, 3 + messageLength);
+        String jsonMessage = new String(messageBytes, StandardCharsets.UTF_8);
+
+        PlayerChatMessageKubicket kubicket = new PlayerChatMessageKubicket();
+        kubicket.setJsonMessage(jsonMessage);
+
+        return kubicket;
     }
 
     // <editor-fold desc="Functions for deserializing the specified byte array, according to the ID.">
@@ -194,7 +209,6 @@ public abstract class KubithonPacket {
             short signatureLength = byteArrayToShort(signatureLengthBytes);
             byte[] signatureBytes = Arrays.copyOfRange(packetBytes, idx, idx + signatureLength);
             String signature = new String(signatureBytes, StandardCharsets.UTF_8);
-            //idx += signatureLength;
             connectionKubicket.setPlayerSkin(skin);
             connectionKubicket.setPlayerSkinSignature(signature);
         }
@@ -247,8 +261,8 @@ public abstract class KubithonPacket {
         positionLookKubicket.setxPos(x);
         positionLookKubicket.setyPos(y);
         positionLookKubicket.setzPos(z);
-        positionLookKubicket.setPitch(getAngleFromByte(pitchByte));
-        positionLookKubicket.setYaw(getAngleFromByte(yawByte));
+        positionLookKubicket.setPitchByte(pitchByte);
+        positionLookKubicket.setYawByte(yawByte);
 
         return positionLookKubicket;
     }
