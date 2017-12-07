@@ -16,6 +16,8 @@ import redis.clients.jedis.JedisPubSub;
  */
 public class JedisPubSubManager extends AbstractPubSubManager<RedisCredentials> implements PubSubManager<RedisCredentials> {
 
+    private static final String REDIS_SERVERID_KEY = "replication:current_server_id:integer";
+
     private Jedis publisherJedis;
     private Jedis subscriberJedis;
     private JedisPubSub pubSub;
@@ -26,8 +28,8 @@ public class JedisPubSubManager extends AbstractPubSubManager<RedisCredentials> 
 
     @Override
     public void connect(RedisCredentials credentials) {
-        this.publisherJedis = new Jedis(credentials.host(), credentials.port(), 2000);
-        this.subscriberJedis  = new Jedis(credentials.host(), credentials.port(), 2000);
+        this.publisherJedis = new Jedis(credentials.host(), credentials.port(), 2000); //NOSONAR: stupid...
+        this.subscriberJedis = new Jedis(credentials.host(), credentials.port(), 2000); //NOSONAR: same...
         String redisPassword = credentials.password();
         if (redisPassword != null) {
             try {
@@ -67,6 +69,30 @@ public class JedisPubSubManager extends AbstractPubSubManager<RedisCredentials> 
             publisherJedis.close();
         if (subscriberJedis != null && subscriberJedis.isConnected())
             subscriberJedis.close();
+    }
+
+    @Override
+    public int queryServerId() {
+        if (!publisherJedis.exists(REDIS_SERVERID_KEY)) {
+            // The key doesn't exist: create with value "1", and set the id of THIS instance to 0
+            publisherJedis.set(REDIS_SERVERID_KEY, "1");
+            ReplicationMod.get().getLogger().info("First instance: ID=0. Created the key " + REDIS_SERVERID_KEY + " and set its value to 1.");
+            return 0;
+        }
+        String msg = "Instance #";
+        // The key exists
+        int serverID;
+        String keyString = publisherJedis.get(REDIS_SERVERID_KEY);
+        msg+=keyString;
+        msg+=". Next instance ID will be ";
+        int key = Integer.parseInt(keyString);
+        serverID = key;
+        key++;
+        keyString = String.valueOf(key);
+        msg+=keyString;
+        publisherJedis.set(REDIS_SERVERID_KEY, keyString);
+        ReplicationMod.get().getLogger().info(msg);
+        return serverID;
     }
 
     private JedisPubSub createPubSub() {

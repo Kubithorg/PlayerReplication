@@ -46,4 +46,8 @@ public interface PubSubManager<T extends Credentials>
      */
     void disconnect();
 
+    /**
+     * @return Returns the ID this server should take, and increments the value of the ID key of the REDIS.
+     */
+    int queryServerId();
 }

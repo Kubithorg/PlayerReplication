@@ -8,7 +8,7 @@ public class ReplicationConfig {
     private int redisPort;
     private String redisHost;
     private String redisPassword;
-    private int serverUuid;
+
     private String replicationPermissionName;
     private boolean debug;
 
@@ -34,14 +34,6 @@ public class ReplicationConfig {
 
     public void setRedisPassword(String redisPassword) {
         this.redisPassword = redisPassword;
-    }
-
-    public int getServerUuid() {
-        return serverUuid;
-    }
-
-    public void setServerUuid(int serverUuid) {
-        this.serverUuid = serverUuid;
     }
 
     public String getReplicationPermissionName() {

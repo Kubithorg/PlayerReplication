@@ -55,6 +55,7 @@ public class ReplicationMod {
     private PubSubManager<RedisCredentials> jedisBroker;
     private ReplicationManager replicationManager;
     private ReplicationConfig config;
+    private int serverUuid;
     private Logger logger;
     private MinecraftServer server;
 
@@ -88,7 +89,6 @@ public class ReplicationMod {
         logger.info("PASSWORD IS " + config.getRedisPassword());
         logger.info("------------------------------------------");
 
-        logger.info("THE SERVER UNIQUE ID IS " + config.getServerUuid());
         logger.info("DEBUG IS " + (config.isDebug() ? "ENABLED" : "DISABLED"));
         logger.info("PERMISSION NAME OF REPLICATION IS " + config.getReplicationPermissionName());
 
@@ -100,6 +100,9 @@ public class ReplicationMod {
         try {
             logger.info("Attempting to connect to Redis...");
             connectToRedis(redisCredentials);
+            logger.info("Trying to get the server ID...");
+            serverUuid = jedisBroker.queryServerId();
+            logger.info("Success! SERVER ID IS " + serverUuid + ".");
             logger.info("Attempting to subscribe to the pattern :..." + BrokingConstant.REPLICATION_PATTERN.concat("*"));
             jedisBroker.psubscribe(BrokingConstant.REPLICATION_PATTERN.concat("*"), BrokingConstant.REPLICATION_TOPIC, new ReplicationListener());
             logger.info(
@@ -130,6 +133,8 @@ public class ReplicationMod {
         MinecraftForge.EVENT_BUS.register(this);
         logger.info("Listeners registered in the event bus.");
     }
+
+    // <editor-fold desc="Forge listeners">
 
     /**
      * Player logs in.
@@ -184,6 +189,7 @@ public class ReplicationMod {
         }
     }
 
+    // </editor-fold>
 
     /**
      * @return Returns that the specified player should be replicated.
@@ -250,7 +256,6 @@ public class ReplicationMod {
                     config.setRedisPassword("REDIS-PASSWORD");
                     config.setRedisPort(3360);
                     config.setReplicationPermissionName("REPLICATION-PERMISSION-NAME");
-                    config.setServerUuid(0);
 
                     Gson gson = new Gson();
                     Files.write(configFile.toPath(), gson.toJson(config, config.getClass()).getBytes());
@@ -294,7 +299,7 @@ public class ReplicationMod {
      * packet over the Redis pub/sub system.
      */
     public int getServerId() {
-        return config.getServerUuid();
+        return serverUuid;
     }
 
     public MinecraftServer getMinecraftServer() {
