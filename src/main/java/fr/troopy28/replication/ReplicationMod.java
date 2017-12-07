@@ -1,8 +1,6 @@
 package fr.troopy28.replication;
 
 import com.google.gson.Gson;
-import com.mojang.authlib.GameProfile;
-import com.mojang.authlib.properties.Property;
 import fr.troopy28.replication.broking.BrokingConstant;
 import fr.troopy28.replication.broking.PubSubManager;
 import fr.troopy28.replication.broking.impl.ReplicationListener;
@@ -10,6 +8,7 @@ import fr.troopy28.replication.broking.impl.redis.RedisCredentials;
 import fr.troopy28.replication.broking.jedis.JedisPubSubManager;
 import fr.troopy28.replication.netty.ReplicateHandler;
 import fr.troopy28.replication.replication.ReplicationManager;
+import fr.troopy28.replication.utils.ForgeScheduler;
 import me.lucko.luckperms.LuckPerms;
 import me.lucko.luckperms.api.Contexts;
 import me.lucko.luckperms.api.LuckPermsApi;
@@ -17,14 +16,13 @@ import me.lucko.luckperms.api.User;
 import me.lucko.luckperms.api.caching.PermissionData;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.network.play.server.SPacketEntityTeleport;
-import net.minecraft.network.play.server.SPacketPlayerListItem;
-import net.minecraft.network.play.server.SPacketSpawnPlayer;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTUtil;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.management.PlayerInteractionManager;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.ServerChatEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
+import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -41,7 +39,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 @Mod(modid = ReplicationMod.MODID, version = ReplicationMod.VERSION, serverSideOnly = true, acceptableRemoteVersions = "*")
 // Server side only mod, accept both forge and no-forge versions
@@ -134,44 +131,23 @@ public class ReplicationMod {
         logger.info("Listeners registered in the event bus.");
     }
 
-    // Player logs in
+    /**
+     * Player logs in.
+     *
+     * @param event
+     */
     @SubscribeEvent
     public void onPlayerLogIn(EntityJoinWorldEvent event) {
         server = event.getWorld().getMinecraftServer();
-        if(!(event.getEntity() instanceof EntityPlayerMP))
+        if (!(event.getEntity() instanceof EntityPlayerMP))
             return;
-        logger.info(event.getEntity().getName() + " joined us!");
 
         final EntityPlayerMP player = (EntityPlayerMP) event.getEntity();
         //test(player);
         if (shouldBeReplicated(player)) {
             logger.info(player.getName() + " has the permission to be replicated.");
-            ReplicateHandler.handle(player);
+            ForgeScheduler.runTaskLater(() -> ReplicateHandler.handle(player), 500);
         }
-    }
-
-    private void test(EntityPlayerMP player) {
-        GameProfile gameProfile = new GameProfile(UUID.fromString("6bd25c70-f838-494b-87fe-2311e95d16ef"), "goubidity");
-
-        Property prop = player.getGameProfile().getProperties().get("textures").iterator().next();
-        gameProfile.getProperties().put("textures", prop);
-
-        EntityPlayerMP fakePlayer = new EntityPlayerMP(
-                player.getServerWorld().getMinecraftServer(),
-                player.getServerWorld(),
-                gameProfile,
-                new PlayerInteractionManager(player.getServerWorld())
-        );
-
-        fakePlayer.setPosition(player.posX, player.posY, player.posZ);
-        player.getGameProfile().getProperties().get("textures").forEach(t -> logger.info(t.getName() + " = " + t.getValue()  + " ; " + t.getSignature()));
-
-        SPacketPlayerListItem info = new SPacketPlayerListItem(SPacketPlayerListItem.Action.ADD_PLAYER, fakePlayer);
-        player.connection.sendPacket(info);
-        SPacketSpawnPlayer spawn = new SPacketSpawnPlayer(fakePlayer);
-        player.connection.sendPacket(spawn);
-        SPacketEntityTeleport pos = new SPacketEntityTeleport(fakePlayer);
-        player.connection.sendPacket(pos);
     }
 
     @SubscribeEvent
@@ -183,8 +159,28 @@ public class ReplicationMod {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onPlayerChat(ServerChatEvent event) {
-        if(shouldBeReplicated(event.getPlayer())) {
+        if (shouldBeReplicated(event.getPlayer())) {
             ReplicationManager.sendPlayerMessage(event.getComponent(), event.getPlayer());
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onBlockPlaced(BlockEvent.PlaceEvent event) {
+        if (shouldBeReplicated(event.getPlayer())) {
+            // Write the block data in the NBT tag
+            NBTTagCompound tag = new NBTTagCompound();
+            NBTUtil.writeBlockState(tag, event.getPlacedBlock());
+            ReplicationManager.sendBlockChange(false, event.getPlacedBlock(), event.getPos(), tag, event.getPlayer());
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onBlockBreak(BlockEvent.BreakEvent event) {
+        if (shouldBeReplicated(event.getPlayer())) {
+            // Write the block data in the NBT tag
+            NBTTagCompound tag = new NBTTagCompound();
+            NBTUtil.writeBlockState(tag, event.getState());
+            ReplicationManager.sendBlockChange(true, event.getState(), event.getPos(), tag, event.getPlayer());
         }
     }
 

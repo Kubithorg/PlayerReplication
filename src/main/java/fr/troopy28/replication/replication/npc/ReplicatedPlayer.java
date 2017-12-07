@@ -101,7 +101,6 @@ public class ReplicatedPlayer implements Runnable {
     // Self documenting....
 
     public void setItemInMainHand(Item item, boolean enchanted, int meta) {
-        ReplicationMod.get().getLogger().info("Item in hand meta: " + meta + " | enchanted: " + enchanted);
         ItemStack itemStack = new ItemStack(item, 1, meta);
         if (enchanted)
             itemStack.addEnchantment(Enchantment.getEnchantmentByID(0), 1);
@@ -156,31 +155,23 @@ public class ReplicatedPlayer implements Runnable {
     }
 
     private void sendStuff(EntityPlayerMP target) {
-        ReplicationMod.get().getLogger().info("Gonna send the stuff packets to " + target.getName());
-
         SPacketEntityEquipment headPacket = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.HEAD, npcEntity.getItemStackFromSlot(EntityEquipmentSlot.HEAD));
         target.connection.sendPacket(headPacket);
-        ReplicationMod.get().getLogger().info("Sent the head packet to" + target.getName());
 
         SPacketEntityEquipment chestPacket = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.CHEST, npcEntity.getItemStackFromSlot(EntityEquipmentSlot.HEAD));
         target.connection.sendPacket(chestPacket);
-        ReplicationMod.get().getLogger().info("Sent the chest packet to" + target.getName());
 
         SPacketEntityEquipment legsPacket = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.LEGS, npcEntity.getItemStackFromSlot(EntityEquipmentSlot.LEGS));
         target.connection.sendPacket(legsPacket);
-        ReplicationMod.get().getLogger().info("Sent the legs packet to" + target.getName());
 
         SPacketEntityEquipment feetPacket = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.FEET, npcEntity.getItemStackFromSlot(EntityEquipmentSlot.FEET));
         target.connection.sendPacket(feetPacket);
-        ReplicationMod.get().getLogger().info("Sent the feet packet to" + target.getName());
 
         SPacketEntityEquipment mainHandPacket = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.MAINHAND, npcEntity.getItemStackFromSlot(EntityEquipmentSlot.MAINHAND));
         target.connection.sendPacket(mainHandPacket);
-        ReplicationMod.get().getLogger().info("Sent the main hand packet to" + target.getName());
 
         SPacketEntityEquipment offHandPacket = new SPacketEntityEquipment(npcEntity.getEntityId(), EntityEquipmentSlot.OFFHAND, npcEntity.getItemStackFromSlot(EntityEquipmentSlot.OFFHAND));
         target.connection.sendPacket(offHandPacket);
-        ReplicationMod.get().getLogger().info("Sent the off hand packet to" + target.getName());
     }
 
 
@@ -302,7 +293,6 @@ public class ReplicatedPlayer implements Runnable {
         sendPacketToAllTargets(look);
         SPacketEntityHeadLook headLook = new SPacketEntityHeadLook(npcEntity, yawByte);
         sendPacketToAllTargets(headLook);
-        //ReplicationMod.get().getLogger().info("Look only. pitch = " + pitch + " ; yaw = " + yaw);
     }
 
     // </editor-fold>
@@ -330,7 +320,6 @@ public class ReplicatedPlayer implements Runnable {
             npcsEntityIds.remove((Integer) npcEntity.getEntityId());
         npcEntity.setDead();
         updateTimer.cancel();
-        targets.clear();
         targets.forEach(this::dispawnFor);
         targets.clear();
         targets = null;
@@ -339,24 +328,24 @@ public class ReplicatedPlayer implements Runnable {
     }
 
     private void dispawnFor(EntityPlayerMP target) {
-        SPacketDestroyEntities destroyPacket = new SPacketDestroyEntities(npcEntity.getEntityId());
-        target.connection.sendPacket(destroyPacket);
-        SPacketPlayerListItem info = new SPacketPlayerListItem(SPacketPlayerListItem.Action.REMOVE_PLAYER, npcEntity);
-        target.connection.sendPacket(info);
-        ReplicationMod.get().getLogger().info("Sent the dispawning packets to " + target.getName());
+        if (target != null) {
+            SPacketDestroyEntities destroyPacket = new SPacketDestroyEntities(npcEntity.getEntityId());
+            target.connection.sendPacket(destroyPacket);
+            SPacketPlayerListItem info = new SPacketPlayerListItem(SPacketPlayerListItem.Action.REMOVE_PLAYER, npcEntity);
+            target.connection.sendPacket(info);
+        }
     }
 
     private void spawnFor(EntityPlayerMP target) {
-        ReplicationMod.get().getLogger().info("Gonna spawn the NPC for " + target.getName());
-        SPacketPlayerListItem info = new SPacketPlayerListItem(SPacketPlayerListItem.Action.ADD_PLAYER, npcEntity);
-        target.connection.sendPacket(info);
-        ReplicationMod.get().getLogger().info("Sent the info packet to " + target.getName());
+        if (target != null && !target.hasDisconnected()) {
+            SPacketPlayerListItem info = new SPacketPlayerListItem(SPacketPlayerListItem.Action.ADD_PLAYER, npcEntity);
+            target.connection.sendPacket(info);
 
-        SPacketSpawnPlayer spawn = new SPacketSpawnPlayer(npcEntity);
-        target.connection.sendPacket(spawn);
-        ReplicationMod.get().getLogger().info("Sent the spawn packet to " + target.getName());
+            SPacketSpawnPlayer spawn = new SPacketSpawnPlayer(npcEntity);
+            target.connection.sendPacket(spawn);
 
-        sendStuff(target);
+            sendStuff(target);
+        }
     }
 
     @Override
@@ -371,14 +360,16 @@ public class ReplicatedPlayer implements Runnable {
                         && !targets.contains(nearbyNotTargetPlayer)) {
                     targets.add(nearbyNotTargetPlayer);
                     ForgeScheduler.runTaskLater(() -> {
-                        ReplicationMod.get().getLogger().info("Adding the target " + nearbyNotTargetPlayer.getName() + ".");
+                        ReplicationMod.get().getLogger().info("Adding the target " + nearbyNotTargetPlayer.getName() + "...");
                         spawnFor(nearbyNotTargetPlayer);
+                        ReplicationMod.get().getLogger().info("Done.");
                     }, 5000); // Absolutely necessary to wait, or a NPE will occur on the client side, because the world might not be fully loaded.
                 } else if (nearbyNotTargetPlayer.getDistance(npcEntity) >= NPC_VISIBILITY_DISTANCE
                         && targets.contains(nearbyNotTargetPlayer)) {
-                    ReplicationMod.get().getLogger().info("Removing the target " + nearbyNotTargetPlayer.getName() + ".");
+                    ReplicationMod.get().getLogger().info("Removing the target " + nearbyNotTargetPlayer.getName() + "...");
                     dispawnFor(nearbyNotTargetPlayer);
                     targets.remove(nearbyNotTargetPlayer);
+                    ReplicationMod.get().getLogger().info("Done.");
                 }
             } catch (Exception ex) {
                 ReplicationMod.get().getLogger().error("An error occurred while updating the NPC " + npcEntity.getName() + ":", ex);

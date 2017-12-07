@@ -147,9 +147,49 @@ public abstract class KubithonPacket {
                 return deserializePlayerEquipmentKubicket(packetBytes);
             case PLAYER_CHAT_MESSAGE:
                 return deserializeChatMessageKubicket(packetBytes);
+            case BLOCK_CHANGED:
+                return deserializeBlockChangedKubicket(packetBytes);
             default:
                 return null;
         }
+    }
+
+    private static BlockChangedKubicket deserializeBlockChangedKubicket(byte[] packetBytes) {
+        byte[] posxBytes = Arrays.copyOfRange(packetBytes, 1, 3);
+        short posX = KubithonPacket.byteArrayToShort(posxBytes);
+
+        byte[] posyBytes = Arrays.copyOfRange(packetBytes, 3, 5);
+        short posY = KubithonPacket.byteArrayToShort(posyBytes);
+
+        byte[] poszBytes = Arrays.copyOfRange(packetBytes, 5, 7);
+        short posZ = KubithonPacket.byteArrayToShort(poszBytes);
+
+        BlockChangedKubicket kubicket = new BlockChangedKubicket();
+        kubicket.setPosX(posX);
+        kubicket.setPosY(posY);
+        kubicket.setPosZ(posZ);
+
+        byte blockBreak = packetBytes[7];
+        if (blockBreak == 1) {
+            // Block is destroyed
+            kubicket.setBlockBreak(true);
+        } else {
+            // Block is placed: add its new data
+            kubicket.setBlockBreak(false);
+            byte[] idBytes = Arrays.copyOfRange(packetBytes, 8, 10);
+            short blockID = KubithonPacket.byteArrayToShort(idBytes);
+
+            byte[] serializedNbtLengthBytes = Arrays.copyOfRange(packetBytes, 10, 12);
+            short serializedNbtLength = KubithonPacket.byteArrayToShort(serializedNbtLengthBytes);
+
+            byte[] serializedNbtBytes = Arrays.copyOfRange(packetBytes, 12, 12 + serializedNbtLength);
+            String serializedNbt = new String(serializedNbtBytes, StandardCharsets.UTF_8);
+
+            kubicket.setBlockID(blockID);
+            kubicket.setSerializedNBT(serializedNbt);
+        }
+
+        return kubicket;
     }
 
     private static KubithonPacket deserializeChatMessageKubicket(byte[] packetBytes) {

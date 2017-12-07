@@ -1,16 +1,23 @@
 package fr.troopy28.replication.replication;
 
+import com.google.gson.Gson;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import fr.troopy28.replication.ReplicationMod;
 import fr.troopy28.replication.broking.BrokingConstant;
 import fr.troopy28.replication.replication.npc.ReplicatedPlayer;
 import fr.troopy28.replication.replication.protocol.*;
+import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.JsonToNBT;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTUtil;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.common.FMLCommonHandler;
@@ -30,6 +37,8 @@ public class ReplicationManager {
      * The map(pseudo, NPC) of the NPCs that are currently displayed on the server.
      */
     private Map<String, ReplicatedPlayer> replicatedPlayers;
+    private static Gson gson = new Gson(); // accessible from static methods
+
 
     public ReplicationManager() {
         replicatedPlayers = new HashMap<>();
@@ -60,6 +69,49 @@ public class ReplicationManager {
         }
     }
 
+    private void handleBlockChangedKubicket(String playerName, BlockChangedKubicket kubicket) {
+        MinecraftServer server = ReplicationMod.get().getMinecraftServer();
+        if(server == null)
+            return;
+
+        WorldServer world = server.getWorld(0);
+
+        BlockPos position = new BlockPos(
+                kubicket.getPosX(),
+                kubicket.getPosY(),
+                kubicket.getPosZ()
+        );
+
+        // If a block has been destroyed, do it, JUST, DO IT!!!
+        if (kubicket.isBlockBreak()) {
+            try {
+                world.destroyBlock(position, false);
+            } catch (Exception ex) {
+
+            }
+        }
+        // Otherwise just update the block
+        else {
+            NBTTagCompound blockData;
+            try {
+                blockData = JsonToNBT.getTagFromJson(kubicket.getSerializedNBT());
+            } catch (Exception e) {
+                ReplicationMod.get().getLogger().error("Unable to read the NBT data for the block " + position + ".");
+                ReplicationMod.get().getLogger().error(e);
+                return;
+            }
+
+            // Update the block
+            IBlockState state = NBTUtil.readBlockState(blockData);
+            try {
+                world.setBlockState(position, state);
+
+            } catch (Exception ex) {
+
+            }
+        }
+    }
+
     /**
      * Manages the specified kubicket. The actions that this kubicket carries will be applied to the player with the
      * specified name.
@@ -84,7 +136,7 @@ public class ReplicationManager {
             );
         } else if (receivedKubicket instanceof PlayerPositionLookKubicket) {
             PlayerPositionLookKubicket positionLookKubicket = (PlayerPositionLookKubicket) receivedKubicket;
-            replicatedPlayers.get(playerName).teleport( // PITCH & YAW = 0
+            replicatedPlayers.get(playerName).teleport(
                     positionLookKubicket.getxPos(),
                     positionLookKubicket.getyPos(),
                     positionLookKubicket.getzPos(),
@@ -101,6 +153,8 @@ public class ReplicationManager {
             handleEquipmentKubicket(playerName, (PlayerEquipmentKubicket) receivedKubicket);
         } else if (receivedKubicket instanceof PlayerChatMessageKubicket) {
             handleChatMessageKubicket(playerName, (PlayerChatMessageKubicket) receivedKubicket);
+        } else if (receivedKubicket instanceof BlockChangedKubicket) {
+            handleBlockChangedKubicket(playerName, (BlockChangedKubicket) receivedKubicket);
         }
     }
 
@@ -244,6 +298,32 @@ public class ReplicationManager {
                         String.valueOf(ReplicationMod.get().getServerId()))
                         .concat(entityPlayer.getName()),
                 Base64.getEncoder().encodeToString(chatMessageKubicket.serialize())
+        );
+    }
+
+    public static void sendBlockChange(boolean blockBreak, IBlockState newBlockState, BlockPos pos, NBTTagCompound blockData, EntityPlayer player) {
+        // Grab the block
+        Block block = newBlockState.getBlock();
+
+        // Fill in the packet
+        BlockChangedKubicket blockChangedKubicket = new BlockChangedKubicket();
+        blockChangedKubicket.setPosX((short) pos.getX());
+        blockChangedKubicket.setPosY((short) pos.getY());
+        blockChangedKubicket.setPosZ((short) pos.getZ());
+        if (blockBreak) {
+            blockChangedKubicket.setBlockBreak(true);
+        } else {
+            blockChangedKubicket.setBlockBreak(false);
+            blockChangedKubicket.setBlockID((short) Block.getIdFromBlock(block));
+            blockChangedKubicket.setSerializedNBT(blockData.toString());
+        }
+
+        // Send it
+        ReplicationMod.get().getMessageBroker().publish(
+                BrokingConstant.REPLICATION_PATTERN.concat(
+                        String.valueOf(ReplicationMod.get().getServerId()))
+                        .concat(player.getName()),
+                Base64.getEncoder().encodeToString(blockChangedKubicket.serialize())
         );
     }
 }

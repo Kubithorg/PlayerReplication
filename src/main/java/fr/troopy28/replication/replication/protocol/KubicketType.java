@@ -15,6 +15,7 @@ public enum KubicketType {
     PLAYER_HAND_ANIMATION((byte) 0x04),
     PLAYER_EQUIPMENT((byte) 0x05),
     PLAYER_CHAT_MESSAGE((byte) 0x06),
+    BLOCK_CHANGED((byte)0x07),
 
     UNDEFINED((byte) 0xAA);
 
@@ -60,6 +61,8 @@ public enum KubicketType {
                 return PLAYER_EQUIPMENT;
             case 0x06:
                 return PLAYER_CHAT_MESSAGE;
+            case 0x07:
+                return BLOCK_CHANGED;
             default:
                 return UNDEFINED;
         }
