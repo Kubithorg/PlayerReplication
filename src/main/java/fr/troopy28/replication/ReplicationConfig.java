@@ -10,6 +10,7 @@ public class ReplicationConfig {
     private String redisPassword;
 
     private String replicationPermissionName;
+    private String blocksReplicationPermissionName;
     private boolean debug;
 
     public int getRedisPort() {
@@ -50,5 +51,13 @@ public class ReplicationConfig {
 
     public void setDebug(boolean debug) {
         this.debug = debug;
+    }
+
+    public String getBlocksReplicationPermissionName() {
+        return blocksReplicationPermissionName;
+    }
+
+    public void setBlocksReplicationPermissionName(String blocksReplicationPermissionName) {
+        this.blocksReplicationPermissionName = blocksReplicationPermissionName;
     }
 }

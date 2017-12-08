@@ -91,6 +91,7 @@ public class ReplicationMod {
 
         logger.info("DEBUG IS " + (config.isDebug() ? "ENABLED" : "DISABLED"));
         logger.info("PERMISSION NAME OF REPLICATION IS " + config.getReplicationPermissionName());
+        logger.info("PERMISSION NAME OF BLOCK REPLICATION IS " + config.getBlocksReplicationPermissionName());
 
         RedisCredentials redisCredentials = new RedisCredentials(
                 config.getRedisHost(),
@@ -148,10 +149,12 @@ public class ReplicationMod {
             return;
 
         final EntityPlayerMP player = (EntityPlayerMP) event.getEntity();
-        //test(player);
         if (shouldBeReplicated(player)) {
             logger.info(player.getName() + " has the permission to be replicated.");
             ForgeScheduler.runTaskLater(() -> ReplicateHandler.handle(player), 500);
+        }
+        if(shouldReplicateBlock(player)) {
+            logger.info("Blocks of " + player.getName() + " will be replicated.");
         }
     }
 
@@ -171,7 +174,7 @@ public class ReplicationMod {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onBlockPlaced(BlockEvent.PlaceEvent event) {
-        if (shouldBeReplicated(event.getPlayer())) {
+        if (shouldReplicateBlock(event.getPlayer())) {
             // Write the block data in the NBT tag
             NBTTagCompound tag = new NBTTagCompound();
             NBTUtil.writeBlockState(tag, event.getPlacedBlock());
@@ -181,7 +184,8 @@ public class ReplicationMod {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onBlockBreak(BlockEvent.BreakEvent event) {
-        if (shouldBeReplicated(event.getPlayer())) {
+        logger.info("Permission name");
+        if (shouldReplicateBlock(event.getPlayer())) {
             // Write the block data in the NBT tag
             NBTTagCompound tag = new NBTTagCompound();
             NBTUtil.writeBlockState(tag, event.getState());
@@ -195,9 +199,6 @@ public class ReplicationMod {
      * @return Returns that the specified player should be replicated.
      */
     public boolean shouldBeReplicated(EntityPlayer player) {
-        /*if (config.isDebug()) // To debug, enable the replication using sponge permissions
-            return player.hasPermission("kubithon.replicate");
-        else {*/
         Optional<User> user = permissionApi.getUserSafe(player.getUniqueID());
         if (!user.isPresent()) {
             permissionApi.getStorage().loadUser(player.getUniqueID());
@@ -215,7 +216,26 @@ public class ReplicationMod {
         } catch (Exception ex) {
             return false;
         }
-        // }
+    }
+
+    public boolean shouldReplicateBlock(EntityPlayer player) {
+        Optional<User> user = permissionApi.getUserSafe(player.getUniqueID());
+        if (!user.isPresent()) {
+            permissionApi.getStorage().loadUser(player.getUniqueID());
+            user = permissionApi.getUserSafe(player.getUniqueID());
+        }
+        // Here the user's value cannot be null
+        Contexts contexts = permissionApi.getContextForUser(user.get()).orElse(null);
+        if (contexts == null)
+            return false;
+
+        PermissionData permissionData = user.get().getCachedData().getPermissionData(contexts);
+        Map<String, Boolean> permissionsMap = permissionData.getImmutableBacking();
+        try {
+            return permissionsMap.get(config.getBlocksReplicationPermissionName());
+        } catch (Exception ex) {
+            return false;
+        }
     }
 
     private void connectToRedis(RedisCredentials credentials) {
@@ -255,7 +275,8 @@ public class ReplicationMod {
                     config.setRedisHost("REDIS-HOST");
                     config.setRedisPassword("REDIS-PASSWORD");
                     config.setRedisPort(3360);
-                    config.setReplicationPermissionName("REPLICATION-PERMISSION-NAME");
+                    config.setReplicationPermissionName("kubithon.replicate");
+                    config.setBlocksReplicationPermissionName("kubithon.replicateblocks");
 
                     Gson gson = new Gson();
                     Files.write(configFile.toPath(), gson.toJson(config, config.getClass()).getBytes());
@@ -264,14 +285,20 @@ public class ReplicationMod {
                     logger.info("-------------------------------");
                     logger.info("PLEASE COMPLETE THE CONFIG FILE");
                     logger.info("-------------------------------");
+                    logger.info("###############################");
+                    logger.info("###############################");
+                    logger.info("###############################");
+                    logger.info("UNSTABLE BEHAVIOUR INCOMING. PLEASE RELOAD THE SERVER.");
+                    logger.info("###############################");
+                    logger.info("###############################");
+                    logger.info("###############################");
                 } else {
                     logger.error("Unable to create the \"" + configFile.getName() + "\" file.");
                 }
             } catch (IOException e) {
                 logger.error("Unable to create the \"" + configFile.getName() + "\" config file." + ExceptionUtils.getStackTrace(e));
             }
-            logger.error("Shutting down the server.");
-            //TODO: shutdown the server
+            logger.error("You should shut down the server.");
             return false;
         }
         logger.info("Credentials file found!");
