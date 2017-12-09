@@ -50,6 +50,7 @@ public class ReplicationManager {
         WorldServer worldServer = FMLCommonHandler.instance().getMinecraftServerInstance().getWorld(0);
         ReplicatedPlayer replicatedPlayer = new ReplicatedPlayer(worldServer, profile);
         replicatedPlayers.put(profile.getName(), replicatedPlayer);
+        ReplicationMod.get().getLogger().info("REGISTERED THE PLAYER " + profile.getName() + ".");
     }
 
     /**
@@ -67,7 +68,6 @@ public class ReplicationManager {
     }
 
     private void handleBlockChangedKubicket(String playerName, BlockChangedKubicket kubicket) {
-
         MinecraftServer server = ReplicationMod.get().getMinecraftServer();
         if (server == null) {
             return;
@@ -120,12 +120,18 @@ public class ReplicationManager {
      * @param receivedKubicket The kubicket received through Redis.
      */
     public void handleKubicket(String playerName, KubithonPacket receivedKubicket) {
-        if (!replicatedPlayers.containsKey(playerName) && !(receivedKubicket instanceof PlayerConnectionKubicket)) {
-            ReplicationMod.get().getLogger().warn("WARNING: '" + playerName + "' was not found as a player to replicate.");
-            ReplicationMod.get().getLogger().warn("Kubicket: " + receivedKubicket.toString());
-            return;
+        // First check for the blocks
+        if (receivedKubicket instanceof BlockChangedKubicket) {
+            handleBlockChangedKubicket(playerName, (BlockChangedKubicket) receivedKubicket);
         }
-        if (receivedKubicket instanceof PlayerLookKubicket) {
+
+        if (receivedKubicket instanceof PlayerConnectionKubicket) {
+            handleConnectionKubicket((PlayerConnectionKubicket) receivedKubicket);
+        }
+        else if (!replicatedPlayers.containsKey(playerName)) {
+            System.out.print(".");
+        }
+        else if (receivedKubicket instanceof PlayerLookKubicket) {
             PlayerLookKubicket lookKubicket = (PlayerLookKubicket) receivedKubicket;
             replicatedPlayers.get(playerName).updateLook(
                     lookKubicket.getPitchByte(),
@@ -149,17 +155,13 @@ public class ReplicationManager {
                     positionLookKubicket.getYawByte(),
                     positionLookKubicket.isOnGround()
             );
-        } else if (receivedKubicket instanceof PlayerConnectionKubicket) {
-            handleConnectionKubicket((PlayerConnectionKubicket) receivedKubicket);
-        } else if (receivedKubicket instanceof PlayerHandAnimationKubicket) {
+        }  else if (receivedKubicket instanceof PlayerHandAnimationKubicket) {
             PlayerHandAnimationKubicket handAnimationKubicket = (PlayerHandAnimationKubicket) receivedKubicket;
             replicatedPlayers.get(playerName).moveArm(handAnimationKubicket.getHand());
         } else if (receivedKubicket instanceof PlayerEquipmentKubicket) {
             handleEquipmentKubicket(playerName, (PlayerEquipmentKubicket) receivedKubicket);
         } else if (receivedKubicket instanceof PlayerChatMessageKubicket) {
             handleChatMessageKubicket(playerName, (PlayerChatMessageKubicket) receivedKubicket);
-        } else if (receivedKubicket instanceof BlockChangedKubicket) {
-            handleBlockChangedKubicket(playerName, (BlockChangedKubicket) receivedKubicket);
         }
     }
 
@@ -215,9 +217,7 @@ public class ReplicationManager {
      * @param receivedPacket The received connection kubicket.
      */
     private void handleConnectionKubicket(PlayerConnectionKubicket receivedPacket) {
-
         if (receivedPacket.getState() == 0) {
-
             GameProfile profile = new GameProfile(
                     UUID.fromString(receivedPacket.getPlayerUuid()),
                     receivedPacket.getPlayerName()
@@ -227,6 +227,7 @@ public class ReplicationManager {
                     receivedPacket.getPlayerSkin(),
                     receivedPacket.getPlayerSkinSignature())
             );
+            ReplicationMod.get().getLogger().info("Received a connection kubicket for the player " + receivedPacket.getPlayerName() + " with the UUID " + receivedPacket.getPlayerUuid() + ".");
             registerReplicatedPlayer(profile);
         } else if (receivedPacket.getState() == 1) {
             unregisterReplicatedPlayer(receivedPacket.getPlayerName());
