@@ -1,6 +1,5 @@
 package fr.troopy28.replication.replication;
 
-import com.google.gson.Gson;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import fr.troopy28.replication.ReplicationMod;
@@ -37,8 +36,6 @@ public class ReplicationManager {
      * The map(pseudo, NPC) of the NPCs that are currently displayed on the server.
      */
     private Map<String, ReplicatedPlayer> replicatedPlayers;
-    private static Gson gson = new Gson(); // accessible from static methods
-
 
     public ReplicationManager() {
         replicatedPlayers = new HashMap<>();
@@ -71,10 +68,14 @@ public class ReplicationManager {
 
     private void handleBlockChangedKubicket(String playerName, BlockChangedKubicket kubicket) {
         MinecraftServer server = ReplicationMod.get().getMinecraftServer();
-        if(server == null)
+        if (server == null)
             return;
 
         WorldServer world = server.getWorld(0);
+        if (world == null) {
+            ReplicationMod.get().getLogger().error("Unable to get the world of the server.");
+            return;
+        }
 
         BlockPos position = new BlockPos(
                 kubicket.getPosX(),
@@ -87,7 +88,6 @@ public class ReplicationManager {
             try {
                 world.destroyBlock(position, false);
             } catch (Exception ex) {
-
             }
         }
         // Otherwise just update the block
@@ -105,9 +105,7 @@ public class ReplicationManager {
             IBlockState state = NBTUtil.readBlockState(blockData);
             try {
                 world.setBlockState(position, state);
-
             } catch (Exception ex) {
-
             }
         }
     }
@@ -120,6 +118,12 @@ public class ReplicationManager {
      * @param receivedKubicket The kubicket received through Redis.
      */
     public void handleKubicket(String playerName, KubithonPacket receivedKubicket) {
+        if (!replicatedPlayers.containsKey(playerName)) {
+            ReplicationMod.get().getLogger().warn("WARNING: '" + playerName + "' was not found as a player to replicate.");
+            ReplicationMod.get().getLogger().warn("Kubicket: " + receivedKubicket.toString());
+            return;
+        }
+
         if (receivedKubicket instanceof PlayerLookKubicket) {
             PlayerLookKubicket lookKubicket = (PlayerLookKubicket) receivedKubicket;
             replicatedPlayers.get(playerName).updateLook(

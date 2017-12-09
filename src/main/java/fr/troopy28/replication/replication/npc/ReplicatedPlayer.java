@@ -46,7 +46,6 @@ public class ReplicatedPlayer implements Runnable {
      */
     private Timer updateTimer;
 
-    private int stuffCounter;
     private byte pitch;
     private byte yaw;
 
@@ -64,12 +63,12 @@ public class ReplicatedPlayer implements Runnable {
      * @param profile Mojang profile of the player to replicate.
      */
     public ReplicatedPlayer(WorldServer world, GameProfile profile) {
-        stuffCounter = 0;
         if (world.getMinecraftServer() == null) {
             ReplicationMod.get().getLogger().error("Error : Minecraft server can't be accessed.");
             return;
         }
 
+        ReplicationMod.get().getLogger().info("Trying to create a NPC for " + npcEntity.getName() + ".");
         npcEntity = new EntityPlayerMP(
                 world.getMinecraftServer(),
                 world,

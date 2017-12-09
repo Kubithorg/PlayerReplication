@@ -41,13 +41,14 @@ import java.util.Map;
 import java.util.Optional;
 
 @Mod(modid = ReplicationMod.MODID, version = ReplicationMod.VERSION, serverSideOnly = true, acceptableRemoteVersions = "*")
-// Server side only mod, accept both forge and no-forge versions
+/**
+ *  Server side only mod, accept both forge and no-forge versions.
+ */
 public class ReplicationMod {
 
     static final String MODID = "forge-replication";
     static final String VERSION = "1.0";
     private static ReplicationMod instance;
-
 
     private final File configFile = new File("replication-config.json");
     private LuckPermsApi permissionApi;
@@ -153,7 +154,7 @@ public class ReplicationMod {
             logger.info(player.getName() + " has the permission to be replicated.");
             ForgeScheduler.runTaskLater(() -> ReplicateHandler.handle(player), 500);
         }
-        if(shouldReplicateBlock(player)) {
+        if (shouldReplicateBlock(player)) {
             logger.info("Blocks of " + player.getName() + " will be replicated.");
         }
     }
@@ -184,7 +185,6 @@ public class ReplicationMod {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onBlockBreak(BlockEvent.BreakEvent event) {
-        logger.info("Permission name");
         if (shouldReplicateBlock(event.getPlayer())) {
             // Write the block data in the NBT tag
             NBTTagCompound tag = new NBTTagCompound();
