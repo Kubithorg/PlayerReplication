@@ -68,7 +68,7 @@ public class ReplicatedPlayer implements Runnable {
             return;
         }
 
-        ReplicationMod.get().getLogger().info("Trying to create a NPC for " + npcEntity.getName() + ".");
+        ReplicationMod.get().getLogger().info("Trying to create a NPC for " + profile.getName() + ".");
         npcEntity = new EntityPlayerMP(
                 world.getMinecraftServer(),
                 world,

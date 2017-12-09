@@ -50,7 +50,7 @@ class ReplicationChannelHandler extends ChannelInboundHandlerAdapter {
      */
     ReplicationChannelHandler(EntityPlayerMP player) {
         this.player = player;
-        mod.getLogger().info("Created a ReplicationChannelHandler for the player " + player.getName() + ".");
+        mod.getLogger().info("Creating a ReplicationChannelHandler for the player " + player.getName() + ".");
 
         // Then send the Redis Kubicket notifying the connection
         PlayerConnectionKubicket connectionKubicket = new PlayerConnectionKubicket();
@@ -73,6 +73,7 @@ class ReplicationChannelHandler extends ChannelInboundHandlerAdapter {
             if (result != 0)
                 ReplicationManager.sendPlayerStuff(player);
         }, 1000, 100);
+        mod.getLogger().info("Done.");
     }
 
     private byte shouldSendPacket() {
